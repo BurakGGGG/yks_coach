@@ -38,10 +38,26 @@ flutter run
 
 ## Doğrulama
 
+Tüm otomatik kontroller tek komutta toplanır:
+
 ```bash
-flutter analyze
-flutter test
+make verify        # veya: ./tool/verify.sh
+```
+
+Bu komut `flutter analyze` ve `flutter test`'i; ileride `functions/` ve
+`test/firestore/` paketleri eklendiğinde de Cloud Functions lint/test'ini ve
+Firestore Rules testlerini sırayla çalıştırır. Web sürümü ayrıca alınır:
+
+```bash
 flutter build web --release
 ```
 
 Görsel ve font varlıkları `pubspec.yaml` içindeki `assets` ve `google_fonts` yapılandırmalarıyla yönetilir.
+
+## Şema sürümü
+
+`users/{uid}` belgeleri `schemaVersion` alanı taşır (güncel: `1`). Belge
+biçimi değiştiğinde [`lib/services/schema.dart`](lib/services/schema.dart)
+içindeki `kCurrentSchemaVersion` artırılır ve `migrateUserData` içine geriye
+uyumlu bir dönüştürme adımı eklenir; uygulamanın geri kalanı her zaman güncel
+biçimi görür.
