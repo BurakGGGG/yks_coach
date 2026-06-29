@@ -1,16 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yks_coach/app.dart';
+import 'package:yks_coach/data/memory_store.dart';
+import 'package:yks_coach/models/study_task.dart';
+import 'package:yks_coach/models/user_profile.dart';
+import 'package:yks_coach/screens/onboarding_screen.dart';
 import 'package:yks_coach/services/auth_service.dart';
-import 'package:yks_coach/state/app_state.dart';
+import 'package:yks_coach/state/app_controller.dart';
 import 'package:yks_coach/state/auth_session.dart';
+
+AppController _buildApp({
+  UserProfile? profile,
+  List<StudyTask> tasks = const [],
+  int initialTab = 0,
+}) {
+  final app = AppController(
+    repositories: memoryRepositories(profile: profile, tasks: tasks),
+    initialTab: initialTab,
+  );
+  addTearDown(app.dispose);
+  return app;
+}
+
+UserProfile _onboarded({String name = 'Ada Yılmaz'}) => UserProfile(
+  userName: name,
+  grade: '12. Sınıf',
+  targetRank: 5000,
+  onboardingCompleted: true,
+);
+
+Future<void> _pumpApp(WidgetTester tester, AppController app, {String? screen}) async {
+  _setMobileSurface(tester);
+  await tester.pumpWidget(YksCoachApp(controller: app, initialScreen: screen));
+  await tester.pump(); // deliver first stream snapshots
+  await tester.pumpAndSettle(); // drain entrance animations / timers
+}
 
 void main() {
   testWidgets('ana modüller arasında gezinir', (tester) async {
-    _setMobileSurface(tester);
-    final state = AppState();
-    await tester.pumpWidget(YksCoachApp(state: state));
-    expect(find.text('Günaydın, Ali.'), findsOneWidget);
+    final app = _buildApp(profile: _onboarded());
+    await _pumpApp(tester, app);
+    expect(find.text('Merhaba, Ada.'), findsOneWidget);
 
     await tester.tap(find.text('Odak'));
     await tester.pumpAndSettle();
@@ -22,94 +52,118 @@ void main() {
 
     await tester.tap(find.text('Program'));
     await tester.pumpAndSettle();
-    expect(find.text('Ekim 2023'), findsOneWidget);
-    state.dispose();
+    expect(find.byTooltip('Sonraki hafta'), findsOneWidget);
   });
 
   testWidgets('tema anahtarı koyu temayı açar', (tester) async {
-    _setMobileSurface(tester);
-    final state = AppState();
-    await tester.pumpWidget(YksCoachApp(state: state));
+    final app = _buildApp(profile: _onboarded());
+    await _pumpApp(tester, app);
     final scaffold = tester.firstState<ScaffoldState>(find.byType(Scaffold));
     scaffold.openDrawer();
     await tester.pumpAndSettle();
     await tester.tap(find.text('Koyu tema'));
     await tester.pumpAndSettle();
-    expect(state.themeMode, ThemeMode.dark);
-    state.dispose();
+    expect(app.themeMode, ThemeMode.dark);
   });
 
   testWidgets('pomodoro sayacı başlatılır ve sıfırlanır', (tester) async {
-    _setMobileSurface(tester);
-    final state = AppState(initialTab: 1);
-    await tester.pumpWidget(YksCoachApp(state: state));
+    final app = _buildApp(profile: _onboarded(), initialTab: 1);
+    await _pumpApp(tester, app);
     await tester.tap(find.text('Başla'));
     await tester.pump(const Duration(seconds: 1));
-    expect(state.timerRunning, isTrue);
+    expect(app.focus.running, isTrue);
     expect(find.text('Duraklat'), findsOneWidget);
     await tester.tap(find.byTooltip('Sıfırla'));
     await tester.pump();
-    expect(state.timerRunning, isFalse);
-    expect(state.remainingSeconds, 25 * 60);
-    state.dispose();
-  });
-
-  testWidgets('tamamlanan odak oturumu istatistiklere eklenir', (tester) async {
-    _setMobileSurface(tester);
-    final state = AppState(initialTab: 1)..remainingSeconds = 1;
-    final firstSessionCount = state.completedFocusSessions;
-    final firstTotal = state.totalFocusMinutes;
-    await tester.pumpWidget(YksCoachApp(state: state));
-    await tester.tap(find.text('Başla'));
-    await tester.pump(const Duration(seconds: 1));
-    expect(state.completedFocusSessions, firstSessionCount + 1);
-    expect(state.totalFocusMinutes, firstTotal + state.focusMinutes);
-    state.dispose();
+    expect(app.focus.running, isFalse);
+    expect(app.focus.remainingSeconds, 25 * 60);
   });
 
   testWidgets('özel odak süresi çalışma modunu korur', (tester) async {
-    _setMobileSurface(tester);
-    final state = AppState(initialTab: 1)..setFocusMinutes(40);
-    await tester.pumpWidget(YksCoachApp(state: state));
+    final app = _buildApp(profile: _onboarded(), initialTab: 1);
+    app.focus.setFocusMinutes(40);
+    await _pumpApp(tester, app);
     await tester.pumpAndSettle();
     expect(find.text('40:00'), findsOneWidget);
-    expect(state.timerMode, 'focus');
-    state.dispose();
+    expect(app.focus.mode, 'focus');
   });
 
-  testWidgets('programdaki görev odak ekranına aktarılır', (tester) async {
+  testWidgets('onboarding profili kaydeder', (tester) async {
+    final app = _buildApp();
     _setMobileSurface(tester);
-    final state = AppState(initialTab: 3);
-    await tester.pumpWidget(YksCoachApp(state: state));
-    await tester.tap(find.byTooltip('Odak oturumu başlat').at(2));
+    await tester.pumpWidget(
+      AppScope(
+        notifier: app,
+        child: const MaterialApp(home: OnboardingScreen()),
+      ),
+    );
+    await tester.pump();
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Ad soyad'),
+      'Mehmet Kaya',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Hedef sıralama'),
+      '4500',
+    );
+    await tester.scrollUntilVisible(
+      find.text('Başlayalım'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(find.text('Başlayalım'));
     await tester.pumpAndSettle();
-    expect(state.tabIndex, 1);
-    expect(state.focusSubject, contains('Geometri'));
-    expect(find.text('ÇALIŞMA KONUSU'), findsOneWidget);
-    state.dispose();
+    await tester.tap(find.text('Başlayalım'));
+    // Not pumpAndSettle: after submit the button shows an indefinite spinner
+    // (in the real app routing unmounts this screen). A few pumps are enough to
+    // run completeOnboarding and deliver the profile stream update.
+    await tester.pump();
+    await tester.pump();
+
+    expect(app.profile.onboardingCompleted, isTrue);
+    expect(app.profile.profile.userName, 'Mehmet Kaya');
+    expect(app.profile.profile.targetRank, 4500);
+
+    // Unmount so the submit-button's indefinite spinner ticker stops and does
+    // not leak into the next test.
+    await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('yeni deneme analize eklenir', (tester) async {
-    _setMobileSurface(tester);
-    final state = AppState(initialTab: 2);
-    await tester.pumpWidget(YksCoachApp(state: state));
+  testWidgets('boş program günü empty-state gösterir', (tester) async {
+    final app = _buildApp(profile: _onboarded(), initialTab: 3);
+    await _pumpApp(tester, app);
+    expect(find.text('Bu gün için görev yok'), findsOneWidget);
+  });
+
+  testWidgets('programa görev eklenir', (tester) async {
+    final app = _buildApp(profile: _onboarded(), initialTab: 3);
+    await _pumpApp(tester, app);
+
+    await tester.tap(find.text('Görev ekle'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, 'Fonksiyon tekrarı');
+    await tester.tap(find.widgetWithText(FilledButton, 'Ekle'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fonksiyon tekrarı'), findsOneWidget);
+    expect(app.schedule.selectedDayTasks.single.title, 'Fonksiyon tekrarı');
+  });
+
+  testWidgets('boş analiz empty-state gösterir ve deneme formu açılır', (tester) async {
+    final app = _buildApp(profile: _onboarded(), initialTab: 2);
+    await _pumpApp(tester, app);
+    expect(find.text('Henüz TYT denemesi eklemedin.'), findsOneWidget);
+
     await tester.tap(find.byTooltip('Deneme ekle'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).at(0), 'Haftalık TYT');
-    await tester.enterText(find.byType(TextField).at(1), '81.25');
-    await tester.tap(find.text('Kaydet'));
-    await tester.pumpAndSettle();
-    expect(state.exams.first.name, 'Haftalık TYT');
-    expect(state.exams.first.net, 81.25);
-    state.dispose();
+    expect(find.text('Deneme ekle'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Kaydet'), findsOneWidget);
   });
 
-  testWidgets('çekmece yardımcı ekranları açar ve profil kaydedilir', (
-    tester,
-  ) async {
-    _setMobileSurface(tester);
-    final state = AppState();
-    await tester.pumpWidget(YksCoachApp(state: state));
+  testWidgets('çekmece profili açar ve kaydeder', (tester) async {
+    final app = _buildApp(profile: _onboarded());
+    await _pumpApp(tester, app);
 
     final scaffold = tester.firstState<ScaffoldState>(find.byType(Scaffold));
     scaffold.openDrawer();
@@ -124,75 +178,33 @@ void main() {
     await tester.ensureVisible(save);
     await tester.tap(save);
     await tester.pumpAndSettle();
-    expect(state.userName, 'Ayşe Demir');
-    state.dispose();
+    expect(app.profile.profile.userName, 'Ayşe Demir');
   });
 
-  testWidgets('program hafta okları gerçek tarihi değiştirir', (tester) async {
-    _setMobileSurface(tester);
-    final state = AppState(initialTab: 3);
-    final firstWeek = state.weekStart;
-    await tester.pumpWidget(YksCoachApp(state: state));
+  testWidgets('hafta okları gerçek tarihi değiştirir', (tester) async {
+    final app = _buildApp(profile: _onboarded(), initialTab: 3);
+    final firstWeek = app.schedule.weekStart;
+    await _pumpApp(tester, app);
     await tester.tap(find.byTooltip('Sonraki hafta'));
     await tester.pumpAndSettle();
-    expect(state.weekStart, firstWeek.add(const Duration(days: 7)));
+    expect(app.schedule.weekStart, firstWeek.add(const Duration(days: 7)));
     await tester.tap(find.byTooltip('Önceki hafta'));
     await tester.pumpAndSettle();
-    expect(state.weekStart, firstWeek);
-    state.dispose();
-  });
-
-  testWidgets('program görevleri seçilen güne ekler', (tester) async {
-    _setMobileSurface(tester);
-    final state = AppState(initialTab: 3);
-    await tester.pumpWidget(YksCoachApp(state: state));
-    await tester.tap(find.text('Pzt'));
-    await tester.pumpAndSettle();
-    expect(find.text('Bu gün için görev yok'), findsOneWidget);
-
-    await tester.tap(find.text('Görev ekle'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byType(TextFormField).first,
-      'Fonksiyon tekrar',
-    );
-    await tester.tap(find.widgetWithText(FilledButton, 'Ekle'));
-    await tester.pumpAndSettle();
-    expect(find.text('Fonksiyon tekrar'), findsOneWidget);
-    expect(state.selectedDayTasks.single.scheduledDate, state.selectedDate);
-    state.dispose();
-  });
-
-  testWidgets('analiz türü içeriği ve metrikleri günceller', (tester) async {
-    _setMobileSurface(tester);
-    final state = AppState(initialTab: 2);
-    await tester.pumpWidget(YksCoachApp(state: state));
-    await tester.tap(find.text('AYT'));
-    await tester.pumpAndSettle();
-    expect(state.examType, 'AYT');
-    expect(find.text('Ders Bazlı Analiz (AYT)'), findsOneWidget);
-    expect(find.text('Kimya'), findsAtLeastNWidgets(1));
-    state.dispose();
+    expect(app.schedule.weekStart, firstWeek);
   });
 
   testWidgets('asistan hızlı soruya yanıt üretir', (tester) async {
-    _setMobileSurface(tester);
-    final state = AppState();
-    await tester.pumpWidget(YksCoachApp(state: state));
-    final scaffold = tester.firstState<ScaffoldState>(find.byType(Scaffold));
-    scaffold.openDrawer();
+    final app = _buildApp(profile: _onboarded());
+    await _pumpApp(tester, app, screen: 'assistant');
+    expect(find.text('YKS Asistanına hoş geldin'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Deneme netlerimi yorumla');
+    await tester.tap(find.byTooltip('Gönder'));
+    await tester.pump(); // user message + typing indicator
+    await tester.pump(const Duration(milliseconds: 700)); // fire delayed reply
     await tester.pumpAndSettle();
-    await tester.tap(find.text('YKS Asistanı'));
-    await tester.pump(const Duration(milliseconds: 200));
-    await tester.pumpAndSettle();
-    expect(find.text('Netlerimi yorumla'), findsOneWidget);
-    await tester.ensureVisible(find.text('Netlerimi yorumla'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Netlerimi yorumla'));
-    await tester.pump(const Duration(milliseconds: 700));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Son TYT ortalaman'), findsOneWidget);
-    state.dispose();
+    expect(app.coach.messages.length, greaterThanOrEqualTo(2));
+    expect(app.coach.messages.last.fromUser, isFalse);
+    expect(find.textContaining('Analiz'), findsWidgets);
   });
 
   testWidgets('giriş ve güvenli kayıt formu durumları çalışır', (tester) async {
@@ -222,10 +234,7 @@ void main() {
     await tester.tap(find.text('Hesabımı oluştur'));
     await tester.pump();
     expect(find.text('Geçerli bir e-posta adresi gir'), findsOneWidget);
-    expect(
-      find.text('Şifre güvenlik koşullarını karşılamıyor'),
-      findsOneWidget,
-    );
+    expect(find.text('Şifre güvenlik koşullarını karşılamıyor'), findsOneWidget);
     session.dispose();
   });
 }

@@ -11,6 +11,10 @@ service cloud.firestore {
         ];
     }
 
+    function isTimestampOrAbsent(data, field) {
+      return !(field in data) || data[field] is timestamp;
+    }
+
     function validUser() {
       let data = request.resource.data;
       return data.keys().hasOnly([
@@ -18,15 +22,15 @@ service cloud.firestore {
           'targetDepartment', 'targetRank', 'dailyQuestionGoal',
           'dailyStudyMinutes', 'prioritySubjects', 'dailyReminder',
           'taskReminder', 'motivationReminder', 'examReminder',
-          'reminderMinutes', 'themeMode', 'focusSubject', 'focusMinutes',
-          'completedFocusSessions', 'totalFocusMinutes', 'updatedAt'
+          'reminderMinutes', 'focusMinutes', 'themeMode', 'onboardingCompleted',
+          'locale', 'timeZone', 'schemaVersion', 'createdAt', 'updatedAt'
         ])
         && data.userName is string && data.userName.size() <= 100
         && data.grade is string && data.grade.size() <= 30
         && data.studyField is string && data.studyField.size() <= 30
         && data.targetUniversity is string && data.targetUniversity.size() <= 120
         && data.targetDepartment is string && data.targetDepartment.size() <= 120
-        && data.targetRank is int && data.targetRank >= 1
+        && data.targetRank is int && data.targetRank >= 0
         && data.dailyQuestionGoal is int
         && data.dailyQuestionGoal >= 1 && data.dailyQuestionGoal <= 1000
         && data.dailyStudyMinutes is int
@@ -36,50 +40,71 @@ service cloud.firestore {
         && data.motivationReminder is bool && data.examReminder is bool
         && data.reminderMinutes is int
         && data.reminderMinutes >= 0 && data.reminderMinutes < 1440
-        && data.themeMode in ['light', 'dark']
-        && data.focusSubject is string && data.focusSubject.size() <= 200
         && data.focusMinutes is int
         && data.focusMinutes >= 1 && data.focusMinutes <= 180
-        && data.completedFocusSessions is int
-        && data.completedFocusSessions >= 0
-        && data.totalFocusMinutes is int && data.totalFocusMinutes >= 0
+        && data.themeMode in ['light', 'dark']
+        && data.onboardingCompleted is bool
+        && data.locale is string && data.locale.size() <= 20
+        && data.timeZone is string && data.timeZone.size() <= 60
+        && data.schemaVersion is int && data.schemaVersion >= 1
+        && isTimestampOrAbsent(data, 'createdAt')
         && data.updatedAt is timestamp;
     }
 
     function validTask() {
       let data = request.resource.data;
       return data.keys().hasOnly([
-          'subject', 'title', 'time', 'color', 'scheduledAt', 'detail',
-          'completed', 'updatedAt'
+          'subject', 'title', 'scheduledAt', 'startMinutes', 'endMinutes',
+          'color', 'detail', 'status', 'createdAt', 'updatedAt'
         ])
         && data.subject is string && data.subject.size() <= 60
         && data.title is string && data.title.size() >= 3
         && data.title.size() <= 200
-        && data.time is string && data.time.size() <= 40
-        && data.color is int && data.scheduledAt is int
+        && data.scheduledAt is int
+        && data.startMinutes is int
+        && data.startMinutes >= 0 && data.startMinutes <= 1440
+        && data.endMinutes is int
+        && data.endMinutes >= 0 && data.endMinutes <= 1440
+        && data.color is int
         && (!('detail' in data) || data.detail == null ||
           (data.detail is string && data.detail.size() <= 500))
-        && data.completed is bool && data.updatedAt is timestamp;
+        && data.status in ['planned', 'completed', 'skipped']
+        && isTimestampOrAbsent(data, 'createdAt')
+        && data.updatedAt is timestamp;
     }
 
     function validExam() {
       let data = request.resource.data;
       return data.keys().hasOnly([
-          'name', 'date', 'net', 'type', 'createdAt'
+          'name', 'type', 'takenAt', 'subjects', 'totalNet', 'createdAt'
         ])
         && data.name is string && data.name.size() >= 3
         && data.name.size() <= 200
-        && data.date is string && data.date.size() <= 60
-        && data.net is number && data.net >= 0 && data.net <= 120
-        && data.type in ['TYT', 'AYT'] && data.createdAt is timestamp;
+        && data.type in ['TYT', 'AYT']
+        && data.takenAt is int
+        && data.subjects is list
+        && data.subjects.size() >= 1 && data.subjects.size() <= 25
+        && data.totalNet is number && data.totalNet >= 0 && data.totalNet <= 500
+        && isTimestampOrAbsent(data, 'createdAt');
+    }
+
+    function validFocusSession() {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          'subject', 'startedAt', 'endedAt', 'durationMinutes', 'createdAt'
+        ])
+        && data.subject is string && data.subject.size() <= 200
+        && data.startedAt is int && data.endedAt is int
+        && data.durationMinutes is int && data.durationMinutes >= 0
+        && isTimestampOrAbsent(data, 'createdAt');
     }
 
     function validMessage() {
       let data = request.resource.data;
-      return data.keys().hasOnly(['text', 'fromUser', 'time', 'createdAt'])
+      return data.keys().hasOnly(['text', 'fromUser', 'createdAt'])
         && data.text is string && data.text.size() >= 1
         && data.text.size() <= 2000 && data.fromUser is bool
-        && data.time is int && data.createdAt is timestamp;
+        && data.createdAt is timestamp;
     }
 
     match /users/{userId} {
@@ -97,9 +122,14 @@ service cloud.firestore {
         allow create, update: if owns(userId) && validExam();
       }
 
+      match /focusSessions/{sessionId} {
+        allow read, delete: if owns(userId);
+        allow create: if owns(userId) && validFocusSession();
+      }
+
       match /coachMessages/{messageId} {
         allow read, delete: if owns(userId);
-        allow create, update: if owns(userId) && validMessage();
+        allow create: if owns(userId) && validMessage();
       }
     }
 

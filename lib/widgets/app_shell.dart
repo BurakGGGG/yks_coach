@@ -9,7 +9,7 @@ import '../screens/notifications_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/program_screen.dart';
 import '../state/auth_session.dart';
-import '../state/app_state.dart';
+import '../state/app_controller.dart';
 import 'common.dart';
 
 class AppShell extends StatelessWidget {
@@ -17,7 +17,8 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
+    final app = AppScope.of(context);
+    final profile = app.profile.profile;
     final auth = AuthScope.maybeOf(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
     const screens = [
@@ -48,11 +49,15 @@ class AppShell extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              state.userName,
+                              profile.userName.isEmpty
+                                  ? 'Öğrenci'
+                                  : profile.userName,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             Text(
-                              '${state.studyField} · ${state.grade}',
+                              [profile.studyField, profile.grade]
+                                  .where((value) => value.isNotEmpty)
+                                  .join(' · '),
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],
@@ -95,7 +100,7 @@ class AppShell extends StatelessWidget {
                 ),
                 title: const Text('Koyu tema'),
                 value: dark,
-                onChanged: state.toggleTheme,
+                onChanged: app.toggleTheme,
               ),
               if (auth != null) ...[
                 const Divider(),
@@ -175,8 +180,8 @@ class AppShell extends StatelessWidget {
                 ),
               ),
               child: KeyedSubtree(
-                key: ValueKey(state.tabIndex),
-                child: screens[state.tabIndex],
+                key: ValueKey(app.tabIndex),
+                child: screens[app.tabIndex],
               ),
             ),
           ),
@@ -188,13 +193,13 @@ class AppShell extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 430),
           child: NavigationBarTheme(
             data: Theme.of(context).navigationBarTheme.copyWith(
-              indicatorColor: state.tabIndex == 0
+              indicatorColor: app.tabIndex == 0
                   ? Theme.of(context).colorScheme.secondaryContainer
                   : Theme.of(context).colorScheme.primaryContainer,
             ),
             child: NavigationBar(
-              selectedIndex: state.tabIndex,
-              onDestinationSelected: state.setTab,
+              selectedIndex: app.tabIndex,
+              onDestinationSelected: app.setTab,
               destinations: const [
                 NavigationDestination(
                   icon: Icon(Icons.dashboard_outlined),

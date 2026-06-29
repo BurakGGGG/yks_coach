@@ -1,23 +1,44 @@
 import 'package:flutter/material.dart';
 
 import '../models/study_task.dart';
-import '../state/app_state.dart';
+import '../state/app_controller.dart';
+import '../state/schedule_controller.dart';
 import '../widgets/common.dart';
+
+const _subjectColors = <String, Color>{
+  'Matematik': Color(0xFF2563EB),
+  'Geometri': Color(0xFF10B981),
+  'Türkçe': Color(0xFF8B5CF6),
+  'Edebiyat': Color(0xFF7C3AED),
+  'Fizik': Color(0xFF0EA5E9),
+  'Kimya': Color(0xFFEF4444),
+  'Biyoloji': Color(0xFF22C55E),
+  'Tarih': Color(0xFFF59E0B),
+  'Coğrafya': Color(0xFFD97706),
+  'Felsefe': Color(0xFF6366F1),
+  'İngilizce': Color(0xFF14B8A6),
+  'Diğer': Color(0xFF64748B),
+};
+
+List<String> get _subjects => _subjectColors.keys.toList();
+
+Color _colorFor(String subject) => _subjectColors[subject] ?? const Color(0xFF2563EB);
 
 class ProgramScreen extends StatelessWidget {
   const ProgramScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
+    final app = AppScope.of(context);
+    final schedule = app.schedule;
     final scheme = Theme.of(context).colorScheme;
-    final tasks = state.selectedDayTasks;
+    final tasks = schedule.selectedDayTasks;
     final completed = tasks.where((task) => task.completed).length;
     final ratio = tasks.isEmpty ? 0.0 : completed / tasks.length;
-    const dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum'];
+    const dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
     final days = List.generate(
-      5,
-      (index) => (dayNames[index], state.weekStart.add(Duration(days: index))),
+      7,
+      (index) => (dayNames[index], schedule.weekStart.add(Duration(days: index))),
     );
 
     return PagePadding(
@@ -28,20 +49,20 @@ class ProgramScreen extends StatelessWidget {
             children: [
               IconButton(
                 tooltip: 'Önceki hafta',
-                onPressed: () => state.changeWeek(-1),
+                onPressed: () => schedule.changeWeek(-1),
                 icon: const Icon(Icons.chevron_left),
               ),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 250),
                 child: Text(
-                  _monthLabel(state.weekStart),
-                  key: ValueKey(state.weekStart),
+                  _monthLabel(schedule.weekStart),
+                  key: ValueKey(schedule.weekStart),
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
               IconButton(
                 tooltip: 'Sonraki hafta',
-                onPressed: () => state.changeWeek(1),
+                onPressed: () => schedule.changeWeek(1),
                 icon: const Icon(Icons.chevron_right),
               ),
             ],
@@ -49,10 +70,10 @@ class ProgramScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: List.generate(days.length, (index) {
-              final selected = state.selectedDay == index;
+              final selected = schedule.selectedDay == index;
               return Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
                   child: Material(
                     color: selected
                         ? scheme.primaryContainer
@@ -60,7 +81,7 @@ class ProgramScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(14),
-                      onTap: () => state.selectDay(index),
+                      onTap: () => schedule.selectDay(index),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Column(
@@ -68,6 +89,7 @@ class ProgramScreen extends StatelessWidget {
                             Text(
                               days[index].$1,
                               style: TextStyle(
+                                fontSize: 12,
                                 color: selected
                                     ? scheme.onPrimaryContainer
                                     : scheme.onSurfaceVariant,
@@ -75,7 +97,7 @@ class ProgramScreen extends StatelessWidget {
                             ),
                             Text(
                               days[index].$2.day.toString(),
-                              style: Theme.of(context).textTheme.titleLarge
+                              style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(
                                     color: selected
                                         ? scheme.onPrimaryContainer
@@ -100,7 +122,7 @@ class ProgramScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        _selectedDayLabel(state.selectedDate),
+                        _selectedDayLabel(schedule.selectedDate),
                         style: Theme.of(context).textTheme.labelMedium
                             ?.copyWith(color: scheme.primary),
                       ),
@@ -128,7 +150,7 @@ class ProgramScreen extends StatelessWidget {
           SectionTitle(
             'Program',
             action: TextButton.icon(
-              onPressed: () => _showAddTask(context, state),
+              onPressed: () => _showTaskDialog(context, schedule),
               icon: const Icon(Icons.add),
               label: const Text('Ekle'),
             ),
@@ -140,7 +162,7 @@ class ProgramScreen extends StatelessWidget {
             switchOutCurve: Curves.easeInCubic,
             child: tasks.isEmpty
                 ? SurfaceCard(
-                    key: ValueKey(state.selectedDate),
+                    key: ValueKey(schedule.selectedDate),
                     border: true,
                     child: Column(
                       children: [
@@ -162,7 +184,7 @@ class ProgramScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         FilledButton.tonalIcon(
-                          onPressed: () => _showAddTask(context, state),
+                          onPressed: () => _showTaskDialog(context, schedule),
                           icon: const Icon(Icons.add),
                           label: const Text('Görev ekle'),
                         ),
@@ -170,7 +192,7 @@ class ProgramScreen extends StatelessWidget {
                     ),
                   )
                 : Column(
-                    key: ValueKey(state.selectedDate),
+                    key: ValueKey(schedule.selectedDate),
                     children: tasks.indexed
                         .map(
                           (entry) => AnimatedEntrance(
@@ -191,100 +213,122 @@ class ProgramScreen extends StatelessWidget {
 
   String _monthLabel(DateTime date) {
     const months = [
-      'Ocak',
-      'Şubat',
-      'Mart',
-      'Nisan',
-      'Mayıs',
-      'Haziran',
-      'Temmuz',
-      'Ağustos',
-      'Eylül',
-      'Ekim',
-      'Kasım',
-      'Aralık',
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
     ];
     return '${months[date.month - 1]} ${date.year}';
   }
 
   String _selectedDayLabel(DateTime date) {
     const dayNames = [
-      'Pazartesi',
-      'Salı',
-      'Çarşamba',
-      'Perşembe',
-      'Cuma',
-      'Cumartesi',
-      'Pazar',
+      'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar',
     ];
     return '${dayNames[date.weekday - 1].toUpperCase()} · ${date.day}';
   }
+}
 
-  Future<void> _showAddTask(BuildContext context, AppState state) async {
-    final formKey = GlobalKey<FormState>();
-    final title = TextEditingController();
-    final time = TextEditingController(text: '17:00 - 18:00');
-    String subject = 'Matematik';
-    final added = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setLocalState) => AlertDialog(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Yeni görev'),
-              const SizedBox(height: 2),
-              Text(
-                _selectedDayLabel(state.selectedDate),
-                style: Theme.of(context).textTheme.labelMedium,
-              ),
-            ],
-          ),
+Future<void> _showTaskDialog(
+  BuildContext context,
+  ScheduleController schedule, {
+  StudyTask? existing,
+}) async {
+  final formKey = GlobalKey<FormState>();
+  final title = TextEditingController(text: existing?.title ?? '');
+  final detail = TextEditingController(text: existing?.detail ?? '');
+  String subject = existing?.subject ?? 'Matematik';
+  TimeOfDay start = existing == null
+      ? const TimeOfDay(hour: 17, minute: 0)
+      : TimeOfDay(hour: existing.startMinutes ~/ 60, minute: existing.startMinutes % 60);
+  TimeOfDay end = existing == null
+      ? const TimeOfDay(hour: 18, minute: 0)
+      : TimeOfDay(hour: existing.endMinutes ~/ 60, minute: existing.endMinutes % 60);
+  final date = existing?.scheduledDate ?? schedule.selectedDate;
+
+  int minutesOf(TimeOfDay t) => t.hour * 60 + t.minute;
+
+  final saved = await showDialog<bool>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setLocalState) {
+        Future<void> pickStart() async {
+          final picked = await showTimePicker(
+            context: context,
+            initialTime: start,
+            helpText: 'Başlangıç saati',
+          );
+          if (picked != null) {
+            setLocalState(() {
+              start = picked;
+              if (minutesOf(end) <= minutesOf(start)) {
+                end = TimeOfDay(hour: (picked.hour + 1) % 24, minute: picked.minute);
+              }
+            });
+          }
+        }
+
+        Future<void> pickEnd() async {
+          final picked = await showTimePicker(
+            context: context,
+            initialTime: end,
+            helpText: 'Bitiş saati',
+          );
+          if (picked != null) setLocalState(() => end = picked);
+        }
+
+        return AlertDialog(
+          title: Text(existing == null ? 'Yeni görev' : 'Görevi düzenle'),
           content: Form(
             key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: subject,
-                  decoration: const InputDecoration(labelText: 'Ders'),
-                  items:
-                      const [
-                            'Matematik',
-                            'Türkçe',
-                            'Geometri',
-                            'Fizik',
-                            'Kimya',
-                          ]
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item,
-                              child: Text(item),
-                            ),
-                          )
-                          .toList(),
-                  onChanged: (value) => setLocalState(() => subject = value!),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: title,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(labelText: 'Görev adı'),
-                  validator: (value) => value == null || value.trim().length < 3
-                      ? 'Görev adını gir'
-                      : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: time,
-                  readOnly: true,
-                  onTap: () => _pickTaskTime(context, time),
-                  decoration: const InputDecoration(
-                    labelText: 'Saat',
-                    suffixIcon: Icon(Icons.schedule_outlined),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: subject,
+                    decoration: const InputDecoration(labelText: 'Ders'),
+                    items: _subjects
+                        .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+                        .toList(),
+                    onChanged: (value) => setLocalState(() => subject = value!),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: title,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'Görev adı'),
+                    validator: (value) => value == null || value.trim().length < 3
+                        ? 'Görev adını gir'
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: detail,
+                    decoration: const InputDecoration(
+                      labelText: 'Açıklama (isteğe bağlı)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: pickStart,
+                          icon: const Icon(Icons.schedule_outlined, size: 18),
+                          label: Text(start.format(context)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: pickEnd,
+                          icon: const Icon(Icons.schedule, size: 18),
+                          label: Text(end.format(context)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -294,51 +338,46 @@ class ProgramScreen extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  Navigator.pop(context, true);
+                if (!formKey.currentState!.validate()) return;
+                if (minutesOf(end) <= minutesOf(start)) {
+                  AppSnack.show(context, 'Bitiş saati başlangıçtan sonra olmalı');
+                  return;
                 }
+                Navigator.pop(context, true);
               },
-              child: const Text('Ekle'),
+              child: Text(existing == null ? 'Ekle' : 'Kaydet'),
             ),
           ],
-        ),
-      ),
-    );
-    if (added == true && title.text.trim().isNotEmpty) {
-      state.addTask(
-        StudyTask(
-          subject: subject,
-          title: title.text.trim(),
-          time: time.text.trim(),
-          color: const Color(0xFF2563EB),
-          scheduledDate: state.selectedDate,
-        ),
-      );
-      if (context.mounted) AppSnack.show(context, 'Görev programa eklendi');
-    }
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    title.dispose();
-    time.dispose();
-  }
+        );
+      },
+    ),
+  );
 
-  Future<void> _pickTaskTime(
-    BuildContext context,
-    TextEditingController controller,
-  ) async {
-    final start = await showTimePicker(
-      context: context,
-      initialTime: const TimeOfDay(hour: 17, minute: 0),
-      helpText: 'Başlangıç saati',
+  if (saved == true) {
+    final task = StudyTask(
+      id: existing?.id ?? '',
+      subject: subject,
+      title: title.text.trim(),
+      scheduledDate: date,
+      startMinutes: minutesOf(start),
+      endMinutes: minutesOf(end),
+      color: _colorFor(subject),
+      detail: detail.text.trim().isEmpty ? null : detail.text.trim(),
+      status: existing?.status ?? TaskStatus.planned,
     );
-    if (start == null || !context.mounted) return;
-    final end = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: (start.hour + 1) % 24, minute: start.minute),
-      helpText: 'Bitiş saati',
-    );
-    if (end == null || !context.mounted) return;
-    controller.text = '${start.format(context)} - ${end.format(context)}';
+    await schedule.addTask(task);
+    if (context.mounted) {
+      AppSnack.show(
+        context,
+        existing == null ? 'Görev programa eklendi' : 'Görev güncellendi',
+      );
+    }
   }
+  // Let the dialog's dismiss animation finish before disposing the controllers,
+  // otherwise the still-mounted TextFields read a disposed controller.
+  await Future<void>.delayed(const Duration(milliseconds: 300));
+  title.dispose();
+  detail.dispose();
 }
 
 class _TaskCard extends StatelessWidget {
@@ -347,7 +386,8 @@ class _TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
+    final app = AppScope.of(context);
+    final schedule = app.schedule;
     return AnimatedOpacity(
       opacity: task.completed ? .68 : 1,
       duration: const Duration(milliseconds: 260),
@@ -359,7 +399,7 @@ class _TaskCard extends StatelessWidget {
           children: [
             Checkbox(
               value: task.completed,
-              onChanged: (_) => state.toggleTask(task),
+              onChanged: (_) => schedule.toggleTask(task),
             ),
             Expanded(
               child: Column(
@@ -379,7 +419,7 @@ class _TaskCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        task.time,
+                        task.timeLabel,
                         style: Theme.of(context).textTheme.labelMedium,
                       ),
                     ],
@@ -387,15 +427,13 @@ class _TaskCard extends StatelessWidget {
                   Text(
                     task.title,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      decoration: task.completed
-                          ? TextDecoration.lineThrough
-                          : null,
+                      decoration: task.completed ? TextDecoration.lineThrough : null,
                       color: task.completed
                           ? Theme.of(context).colorScheme.onSurfaceVariant
                           : null,
                     ),
                   ),
-                  if (task.detail != null) ...[
+                  if (task.detail != null && task.detail!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       task.detail!,
@@ -405,14 +443,67 @@ class _TaskCard extends StatelessWidget {
                 ],
               ),
             ),
-            IconButton(
-              tooltip: 'Odak oturumu başlat',
-              onPressed: () => state.startTask(task),
-              icon: const Icon(Icons.play_arrow_rounded),
-            ),
+            _TaskMenu(task: task, schedule: schedule, app: app),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _TaskMenu extends StatelessWidget {
+  const _TaskMenu({
+    required this.task,
+    required this.schedule,
+    required this.app,
+  });
+
+  final StudyTask task;
+  final ScheduleController schedule;
+  final AppController app;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      tooltip: 'Görev işlemleri',
+      icon: const Icon(Icons.more_vert),
+      onSelected: (value) async {
+        switch (value) {
+          case 'focus':
+            app.startTaskFocus(task.subject, task.title);
+          case 'edit':
+            await _showTaskDialog(context, schedule, existing: task);
+          case 'delete':
+            await schedule.deleteTask(task.id);
+            if (context.mounted) AppSnack.show(context, 'Görev silindi');
+        }
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: 'focus',
+          child: ListTile(
+            leading: Icon(Icons.play_arrow_rounded),
+            title: Text('Odakta başlat'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem(
+          value: 'edit',
+          child: ListTile(
+            leading: Icon(Icons.edit_outlined),
+            title: Text('Düzenle'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem(
+          value: 'delete',
+          child: ListTile(
+            leading: Icon(Icons.delete_outline),
+            title: Text('Sil'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      ],
     );
   }
 }

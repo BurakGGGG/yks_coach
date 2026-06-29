@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../state/app_state.dart';
+import '../state/app_controller.dart';
 import '../widgets/common.dart';
 
 class GoalsScreen extends StatefulWidget {
@@ -20,16 +20,17 @@ class _GoalsScreenState extends State<GoalsScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_initialized) return;
-    final state = AppScope.of(context);
-    _questions = state.dailyQuestionGoal.toDouble();
-    _minutes = state.dailyStudyMinutes.toDouble();
-    _prioritySubjects.addAll(state.prioritySubjects);
+    final profile = AppScope.of(context).profile.profile;
+    _questions = profile.dailyQuestionGoal.toDouble();
+    _minutes = profile.dailyStudyMinutes.toDouble();
+    _prioritySubjects.addAll(profile.prioritySubjects);
     _initialized = true;
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
+    final profileController = AppScope.of(context).profile;
+    final profile = profileController.profile;
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Hedeflerim')),
@@ -64,12 +65,16 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                   ?.copyWith(color: scheme.onPrimaryContainer),
                             ),
                             Text(
-                              '${state.targetRank}',
+                              profile.targetRank == 0
+                                  ? 'Belirtilmedi'
+                                  : '${profile.targetRank}',
                               style: Theme.of(context).textTheme.headlineMedium
                                   ?.copyWith(color: scheme.onPrimaryContainer),
                             ),
                             Text(
-                              '${state.targetUniversity} · ${state.targetDepartment}',
+                              [profile.targetUniversity, profile.targetDepartment]
+                                  .where((value) => value.isNotEmpty)
+                                  .join(' · '),
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(color: scheme.onPrimaryContainer),
                               maxLines: 2,
@@ -165,10 +170,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
               const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: () {
-                  state.updateGoals(
+                  profileController.updateGoals(
                     questions: _questions.round(),
                     studyMinutes: _minutes.round(),
-                    subjects: _prioritySubjects,
+                    subjects: _prioritySubjects.toList(),
                   );
                   AppSnack.show(context, 'Günlük hedeflerin güncellendi');
                 },

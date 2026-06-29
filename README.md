@@ -20,12 +20,23 @@ Uygulama `yks-coach-d8b65` Firebase projesine bağlıdır. İlk açılışta ge�
 
 E-posta hesaplarında proje seviyesinde en az 10 karakter, büyük harf, küçük harf ve rakam zorunluluğu uygulanır. E-posta adresi keşfini zorlaştıran gelişmiş gizlilik ayarı ve 30 günlük anonim kullanıcı temizliği Firebase tarafında etkindir.
 
+Yeni hesaplar demo verisi olmadan başlar: ilk girişte kısa bir onboarding ile
+ad, sınıf, alan, hedef ve günlük hedefler alınır. Dashboard ve analizdeki tüm
+istatistikler (çalışma süresi, tamamlanan görev, pomodoro, net ortalaması, zayıf
+ders) yalnızca kullanıcının gerçek görev/odak/deneme kayıtlarından türetilir.
+
+Uygulama katmanı domain'lere ayrılmıştır: `ProfileController`,
+`ScheduleController`, `FocusController`, `ExamController`, `CoachController`
+(her biri kendi repository'si üzerinden Firestore akışlarını dinler) ve saf
+`analytics` hesaplama katmanı; hepsi `AppController` kökünde birleşir.
+
 Firestore yapısı:
 
 ```text
 users/{uid}
 users/{uid}/tasks/{taskId}
 users/{uid}/exams/{examId}
+users/{uid}/focusSessions/{sessionId}
 users/{uid}/coachMessages/{messageId}
 ```
 

@@ -1,31 +1,37 @@
 import 'package:flutter/material.dart';
 
-import '../state/app_state.dart';
+import '../state/app_controller.dart';
+import '../state/focus_controller.dart';
 import '../widgets/common.dart';
 
 class FocusScreen extends StatelessWidget {
   const FocusScreen({super.key});
 
-  static const subjects = [
-    'Matematik - Limit & Türev',
-    'Türkçe - Paragraf Soru Çözümü',
-    'Fizik - Elektromanyetizma',
-    'Kimya - Organik Kimya',
+  static const _baseSubjects = [
+    'Matematik',
+    'Geometri',
+    'Türkçe',
+    'Edebiyat',
+    'Fizik',
+    'Kimya',
+    'Biyoloji',
+    'Tarih',
+    'Coğrafya',
+    'İngilizce',
   ];
 
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
+    final focus = AppScope.of(context).focus;
     final scheme = Theme.of(context).colorScheme;
-    final minutes = state.remainingSeconds ~/ 60;
-    final seconds = state.remainingSeconds % 60;
-    final total = switch (state.timerMode) {
-      'shortBreak' => 5 * 60,
-      'longBreak' => 15 * 60,
-      _ => state.focusMinutes * 60,
-    };
-    final value = total == 0 ? 0.0 : state.remainingSeconds / total;
-    final subjectOptions = {...subjects, state.focusSubject}.toList();
+    final minutes = focus.remainingSeconds ~/ 60;
+    final seconds = focus.remainingSeconds % 60;
+    final total = focus.totalSeconds;
+    final value = total == 0 ? 0.0 : focus.remainingSeconds / total;
+    final options = <String>{
+      ..._baseSubjects,
+      if (focus.subject.isNotEmpty) focus.subject,
+    }.toList();
 
     return PagePadding(
       child: Column(
@@ -40,9 +46,10 @@ class FocusScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  initialValue: state.focusSubject,
+                  initialValue: focus.subject.isEmpty ? null : focus.subject,
                   isExpanded: true,
-                  items: subjectOptions
+                  hint: const Text('Konu seç'),
+                  items: options
                       .map(
                         (subject) => DropdownMenuItem(
                           value: subject,
@@ -50,7 +57,8 @@ class FocusScreen extends StatelessWidget {
                         ),
                       )
                       .toList(),
-                  onChanged: (value) => state.selectFocusSubject(value!),
+                  onChanged: (value) =>
+                      value == null ? null : focus.selectSubject(value),
                 ),
               ],
             ),
@@ -62,8 +70,8 @@ class FocusScreen extends StatelessWidget {
               ButtonSegment(value: 'shortBreak', label: Text('Kısa Ara')),
               ButtonSegment(value: 'longBreak', label: Text('Uzun Ara')),
             ],
-            selected: {state.timerMode},
-            onSelectionChanged: (value) => state.setTimerMode(value.first),
+            selected: {focus.mode},
+            onSelectionChanged: (value) => focus.setMode(value.first),
             showSelectedIcon: false,
           ),
           const SizedBox(height: 36),
@@ -83,9 +91,7 @@ class FocusScreen extends StatelessWidget {
                           value: animatedValue,
                           strokeWidth: 6,
                           strokeCap: StrokeCap.round,
-                          backgroundColor: scheme.primary.withValues(
-                            alpha: .12,
-                          ),
+                          backgroundColor: scheme.primary.withValues(alpha: .12),
                         ),
                   ),
                 ),
@@ -103,7 +109,7 @@ class FocusScreen extends StatelessWidget {
                       ),
                       child: Text(
                         '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                        key: ValueKey(state.remainingSeconds),
+                        key: ValueKey(focus.remainingSeconds),
                         style: Theme.of(context).textTheme.headlineMedium
                             ?.copyWith(fontSize: 64, height: 1),
                       ),
@@ -114,7 +120,7 @@ class FocusScreen extends StatelessWidget {
                       children: [
                         const Icon(Icons.psychology_outlined, size: 16),
                         const SizedBox(width: 4),
-                        Text(switch (state.timerMode) {
+                        Text(switch (focus.mode) {
                           'shortBreak' => 'Kısa Mola',
                           'longBreak' => 'Uzun Mola',
                           _ => 'Odaklanma Modu',
@@ -132,19 +138,19 @@ class FocusScreen extends StatelessWidget {
             children: [
               IconButton.filledTonal(
                 tooltip: 'Sıfırla',
-                onPressed: state.resetTimer,
+                onPressed: focus.reset,
                 icon: const Icon(Icons.replay),
               ),
               const SizedBox(width: 16),
               FilledButton.icon(
-                onPressed: state.toggleTimer,
-                icon: Icon(state.timerRunning ? Icons.pause : Icons.play_arrow),
-                label: Text(state.timerRunning ? 'Duraklat' : 'Başla'),
+                onPressed: focus.toggleTimer,
+                icon: Icon(focus.running ? Icons.pause : Icons.play_arrow),
+                label: Text(focus.running ? 'Duraklat' : 'Başla'),
               ),
               const SizedBox(width: 16),
               IconButton.filledTonal(
                 tooltip: 'Sayaç ayarları',
-                onPressed: () => _showSettings(context, state),
+                onPressed: () => _showSettings(context, focus),
                 icon: const Icon(Icons.settings_outlined),
               ),
             ],
@@ -171,8 +177,7 @@ class FocusScreen extends StatelessWidget {
                           margin: const EdgeInsets.only(right: 5),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color:
-                                index < state.completedFocusSessions.clamp(0, 5)
+                            color: index < focus.todaySessionCount.clamp(0, 5)
                                 ? scheme.secondary
                                 : scheme.surfaceContainerHigh,
                           ),
@@ -187,12 +192,12 @@ class FocusScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'Toplam Süre',
+                    'Bugünkü Süre',
                     style: Theme.of(context).textTheme.labelMedium,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _durationLabel(state.totalFocusMinutes),
+                    _durationLabel(focus.todayMinutes),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ],
@@ -204,8 +209,8 @@ class FocusScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _showSettings(BuildContext context, AppState state) async {
-    double minutes = state.focusMinutes.toDouble();
+  Future<void> _showSettings(BuildContext context, FocusController focus) async {
+    double minutes = focus.focusMinutes.toDouble();
     final result = await showDialog<int>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -241,7 +246,7 @@ class FocusScreen extends StatelessWidget {
         ),
       ),
     );
-    if (result != null) state.setFocusMinutes(result);
+    if (result != null) focus.setFocusMinutes(result);
   }
 
   String _durationLabel(int minutes) {

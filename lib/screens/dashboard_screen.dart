@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../state/app_state.dart';
+import '../state/app_controller.dart';
 import '../widgets/common.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -8,18 +8,26 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
+    final app = AppScope.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final completed = state.tasks.where((task) => task.completed).length;
-    final progress = state.tasks.isEmpty ? 0.0 : completed / state.tasks.length;
-    final nextTask = state.tasks.where((task) => !task.completed).firstOrNull;
+    final profile = app.profile.profile;
+    final stats = app.dashboardStats;
+
+    final now = DateTime.now();
+    final todayTasks = app.schedule.tasks
+        .where((task) => _sameDay(task.scheduledDate, now))
+        .toList();
+    final nextTask = todayTasks.where((task) => !task.completed).firstOrNull;
+    final firstName = profile.userName.trim().isEmpty
+        ? 'Öğrenci'
+        : profile.userName.trim().split(' ').first;
 
     return PagePadding(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Günaydın, ${state.userName.split(' ').first}.',
+            'Merhaba, $firstName.',
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 4),
@@ -29,7 +37,7 @@ class DashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           SurfaceCard(
-            onTap: () => state.setTab(3),
+            onTap: () => app.setTab(3),
             child: Row(
               children: [
                 Expanded(
@@ -37,12 +45,14 @@ class DashboardScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Bugünkü Hedef: %${(progress * 100).round()}',
+                        'Bugünkü Hedef: %${(stats.todayCompletionRatio * 100).round()}',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$completed/${state.tasks.length} görev tamamlandı',
+                        todayTasks.isEmpty
+                            ? 'Bugün için henüz görev eklemedin'
+                            : '${stats.todayCompletedTasks}/${stats.todayTotalTasks} görev tamamlandı',
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ],
@@ -52,7 +62,7 @@ class DashboardScreen extends StatelessWidget {
                   width: 64,
                   height: 64,
                   child: TweenAnimationBuilder<double>(
-                    tween: Tween(end: progress),
+                    tween: Tween(end: stats.todayCompletionRatio),
                     duration: const Duration(milliseconds: 700),
                     curve: Curves.easeOutCubic,
                     builder: (context, animatedValue, _) => Stack(
@@ -82,30 +92,30 @@ class DashboardScreen extends StatelessWidget {
               Expanded(
                 child: _Stat(
                   icon: Icons.timer_outlined,
-                  value: '4s',
-                  label: 'Toplam\nÇalışma',
+                  value: _durationLabel(stats.todayStudyMinutes),
+                  label: 'Bugünkü\nÇalışma',
                   color: scheme.primary,
-                  onTap: () => state.setTab(1),
+                  onTap: () => app.setTab(1),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _Stat(
                   icon: Icons.checklist,
-                  value: '${state.dailyQuestionGoal}',
-                  label: 'Çözülen\nSoru',
+                  value: '${stats.todayCompletedTasks}/${stats.todayTotalTasks}',
+                  label: 'Tamamlanan\nGörev',
                   color: scheme.secondary,
-                  onTap: () => state.setTab(3),
+                  onTap: () => app.setTab(3),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _Stat(
                   icon: Icons.psychology_outlined,
-                  value: '85%',
-                  label: 'Odak\nSüresi',
+                  value: '${stats.todayFocusSessions}',
+                  label: 'Pomodoro\nOturumu',
                   color: scheme.tertiary,
-                  onTap: () => state.setTab(2),
+                  onTap: () => app.setTab(1),
                 ),
               ),
             ],
@@ -116,20 +126,18 @@ class DashboardScreen extends StatelessWidget {
           if (nextTask != null)
             SurfaceCard(
               border: true,
-              onTap: () => state.startTask(nextTask),
+              onTap: () =>
+                  app.startTaskFocus(nextTask.subject, nextTask.title),
               child: Row(
                 children: [
                   Container(
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
+                      color: nextTask.color.withValues(alpha: .16),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      Icons.calculate_outlined,
-                      color: scheme.onPrimaryContainer,
-                    ),
+                    child: Icon(Icons.menu_book_outlined, color: nextTask.color),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -150,19 +158,49 @@ class DashboardScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Chip(label: Text(nextTask.time.split(' - ').first)),
+                  Chip(label: Text(nextTask.startLabel)),
                 ],
               ),
             )
           else
-            const SurfaceCard(child: Text('Bugünkü tüm görevler tamamlandı.')),
+            SurfaceCard(
+              border: true,
+              child: Row(
+                children: [
+                  Icon(Icons.event_available_outlined, color: scheme.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      todayTasks.isEmpty
+                          ? 'Bugün için Program sekmesinden görev ekleyebilirsin.'
+                          : 'Bugünkü tüm görevleri tamamladın. Harikasın!',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => app.setTab(3),
+                    child: const Text('Program'),
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 24),
           const SectionTitle('Haftalık Aktivite (Saat)'),
           const SizedBox(height: 8),
-          const SurfaceCard(child: _WeeklyChart()),
+          SurfaceCard(child: _WeeklyChart(hours: stats.weeklyStudyHours)),
         ],
       ),
     );
+  }
+
+  static bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  static String _durationLabel(int minutes) {
+    if (minutes <= 0) return '0dk';
+    if (minutes < 60) return '${minutes}dk';
+    final hours = minutes / 60;
+    return '${hours.toStringAsFixed(hours % 1 == 0 ? 0 : 1)}s';
   }
 }
 
@@ -209,38 +247,57 @@ class _Stat extends StatelessWidget {
 }
 
 class _WeeklyChart extends StatelessWidget {
-  const _WeeklyChart();
+  const _WeeklyChart({required this.hours});
+
+  final List<double> hours;
+
   @override
   Widget build(BuildContext context) {
-    const values = [2.0, 3.5, 5.0, 6.0, 3.0, 1.5, .5];
     const labels = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
     final scheme = Theme.of(context).colorScheme;
+    final maxValue = hours.fold<double>(0, (m, v) => v > m ? v : m);
+    final todayIndex = (DateTime.now().weekday - 1).clamp(0, 6);
+
+    if (maxValue == 0) {
+      return SizedBox(
+        height: 160,
+        child: Center(
+          child: Text(
+            'Bu hafta henüz çalışma kaydın yok.\nOdak sekmesinden ilk oturumunu başlat.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+      );
+    }
+
     return SizedBox(
       height: 160,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(values.length, (index) {
-          final active = index == 3;
+        children: List.generate(hours.length, (index) {
+          final active = index == todayIndex;
+          final value = hours[index];
           return Expanded(
             child: Tooltip(
-              message: '${values[index]} saat',
+              message: '${value.toStringAsFixed(1)} saat',
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 3),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: values[index]),
+                      tween: Tween(begin: 0, end: value),
                       duration: Duration(milliseconds: 450 + index * 70),
                       curve: Curves.easeOutCubic,
                       builder: (context, animatedValue, _) => Container(
-                        height: animatedValue * 18,
+                        height: maxValue == 0
+                            ? 2
+                            : (118 * animatedValue / maxValue).clamp(2, 118),
                         decoration: BoxDecoration(
                           color: active
                               ? scheme.primary
-                              : scheme.primary.withValues(
-                                  alpha: .18 + index * .06,
-                                ),
+                              : scheme.primary.withValues(alpha: .35),
                           borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(6),
                           ),

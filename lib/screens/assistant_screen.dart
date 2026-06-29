@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../state/app_state.dart';
+import '../state/app_controller.dart';
+import '../state/coach_controller.dart';
 import '../widgets/common.dart';
 
 class AssistantScreen extends StatefulWidget {
@@ -21,8 +22,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
     super.dispose();
   }
 
-  Future<void> _send(AppState state, [String? prompt]) async {
-    if (state.assistantTyping) {
+  Future<void> _send(CoachController coach, [String? prompt]) async {
+    if (coach.typing) {
       AppSnack.show(context, 'Asistan yanıtını hazırlıyor');
       return;
     }
@@ -32,7 +33,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
       return;
     }
     _controller.clear();
-    final future = state.sendCoachMessage(message);
+    final future = coach.sendMessage(message);
     _scrollToBottom();
     await future;
     _scrollToBottom();
@@ -49,9 +50,35 @@ class _AssistantScreenState extends State<AssistantScreen> {
     });
   }
 
+  Future<void> _confirmClear(BuildContext context, CoachController coach) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sohbet geçmişini temizle'),
+        content: const Text(
+          'Tüm asistan sohbet geçmişin silinecek. Bu işlem geri alınamaz.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Vazgeç'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Temizle'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await coach.clearHistory();
+      if (context.mounted) AppSnack.show(context, 'Sohbet geçmişi temizlendi');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
+    final coach = AppScope.of(context).coach;
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
@@ -64,6 +91,14 @@ class _AssistantScreenState extends State<AssistantScreen> {
             ),
           ],
         ),
+        actions: [
+          if (coach.messages.isNotEmpty)
+            IconButton(
+              tooltip: 'Geçmişi temizle',
+              icon: const Icon(Icons.delete_sweep_outlined),
+              onPressed: () => _confirmClear(context, coach),
+            ),
+        ],
       ),
       body: Center(
         child: ConstrainedBox(
@@ -71,7 +106,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
           child: Column(
             children: [
               SizedBox(
-                height: 46,
+                height: 56,
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
@@ -79,26 +114,26 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     ActionChip(
                       label: const Text('Bugünkü programım'),
                       avatar: const Icon(Icons.calendar_today, size: 18),
-                      onPressed: state.assistantTyping
+                      onPressed: coach.typing
                           ? null
-                          : () => _send(state, 'Bugünkü programımı düzenle'),
+                          : () => _send(coach, 'Bugünkü programımı düzenle'),
                     ),
                     const SizedBox(width: 8),
                     ActionChip(
                       label: const Text('Netlerimi yorumla'),
                       avatar: const Icon(Icons.analytics_outlined, size: 18),
-                      onPressed: state.assistantTyping
+                      onPressed: coach.typing
                           ? null
-                          : () => _send(state, 'Deneme netlerimi yorumla'),
+                          : () => _send(coach, 'Deneme netlerimi yorumla'),
                     ),
                     const SizedBox(width: 8),
                     ActionChip(
                       label: const Text('Motivasyon'),
                       avatar: const Icon(Icons.bolt_outlined, size: 18),
-                      onPressed: state.assistantTyping
+                      onPressed: coach.typing
                           ? null
                           : () => _send(
-                              state,
+                              coach,
                               'Çalışmak için motivasyona ihtiyacım var',
                             ),
                     ),
@@ -106,20 +141,22 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 ),
               ),
               Expanded(
-                child: ListView.builder(
+                child: coach.messages.isEmpty && !coach.typing
+                    ? _EmptyConversation(scheme: scheme)
+                    : ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                   itemCount:
-                      state.coachMessages.length +
-                      (state.assistantTyping ? 1 : 0),
+                      coach.messages.length +
+                      (coach.typing ? 1 : 0),
                   itemBuilder: (context, index) {
-                    if (index == state.coachMessages.length) {
+                    if (index == coach.messages.length) {
                       return const _TypingBubble();
                     }
-                    final message = state.coachMessages[index];
+                    final message = coach.messages[index];
                     return AnimatedEntrance(
                       key: ValueKey(
-                        '${message.time.microsecondsSinceEpoch}-$index',
+                        '${message.createdAt.microsecondsSinceEpoch}-$index',
                       ),
                       child: Align(
                         alignment: message.fromUser
@@ -178,7 +215,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                           minLines: 1,
                           maxLines: 4,
                           textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _send(state),
+                          onSubmitted: (_) => _send(coach),
                           decoration: const InputDecoration(
                             hintText: 'Asistana sor...',
                             prefixIcon: Icon(Icons.auto_awesome_outlined),
@@ -188,9 +225,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
                       const SizedBox(width: 8),
                       IconButton.filled(
                         tooltip: 'Gönder',
-                        onPressed: state.assistantTyping
+                        onPressed: coach.typing
                             ? null
-                            : () => _send(state),
+                            : () => _send(coach),
                         icon: const Icon(Icons.send_rounded),
                       ),
                     ],
@@ -199,6 +236,40 @@ class _AssistantScreenState extends State<AssistantScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyConversation extends StatelessWidget {
+  const _EmptyConversation({required this.scheme});
+
+  final ColorScheme scheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.auto_awesome_outlined, size: 48, color: scheme.primary),
+            const SizedBox(height: 12),
+            Text(
+              'YKS Asistanına hoş geldin',
+              style: Theme.of(context).textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Programın, netlerin veya motivasyon için aşağıdan bir soru '
+              'seçebilir ya da kendi sorunu yazabilirsin.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
         ),
       ),
     );

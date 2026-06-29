@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../data/firestore_store.dart';
 import '../services/auth_service.dart';
-import '../services/firebase_app_repository.dart';
-import 'app_state.dart';
+import 'app_controller.dart';
 
 enum AuthStage { loading, authentication, verification, ready, failure }
 
@@ -22,7 +22,7 @@ class AuthSession extends ChangeNotifier {
   final String? initialScreen;
 
   AuthStage stage = AuthStage.loading;
-  AppState? appState;
+  AppController? app;
   User? user;
   bool busy = false;
   String? errorMessage;
@@ -83,8 +83,8 @@ class AuthSession extends ChangeNotifier {
   });
 
   Future<void> signOut() => _run(() async {
-    appState?.dispose();
-    appState = null;
+    app?.dispose();
+    app = null;
     await auth.signOut();
     await auth.ensureAnonymousUser();
     await _routeCurrentUser();
@@ -121,20 +121,18 @@ class AuthSession extends ChangeNotifier {
 
     stage = AuthStage.loading;
     notifyListeners();
-    final repository = await FirebaseAppRepository.connect();
-    final nextState = AppState(
+    final nextApp = AppController(
+      repositories: firestoreRepositories(current.uid),
       initialTab: initialTab,
-      dark: initialDark,
-      repository: repository,
-      initialUserName: current.displayName,
+      suggestedName: current.displayName,
     );
-    await nextState.hydrate();
+    await nextApp.whenReady;
     if (generation != _routeGeneration) {
-      nextState.dispose();
+      nextApp.dispose();
       return;
     }
-    appState?.dispose();
-    appState = nextState;
+    app?.dispose();
+    app = nextApp;
     stage = AuthStage.ready;
     notifyListeners();
   }
@@ -189,7 +187,7 @@ class AuthSession extends ChangeNotifier {
 
   @override
   void dispose() {
-    appState?.dispose();
+    app?.dispose();
     super.dispose();
   }
 }

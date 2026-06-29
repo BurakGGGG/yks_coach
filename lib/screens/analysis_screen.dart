@@ -1,39 +1,52 @@
 import 'package:flutter/material.dart';
 
-import '../models/study_task.dart';
-import '../state/app_state.dart';
+import '../models/practice_exam.dart';
+import '../state/analytics.dart';
+import '../state/app_controller.dart';
+import '../state/exam_controller.dart';
 import '../widgets/common.dart';
+
+const _examSubjects = {
+  'TYT': ['Türkçe', 'Sosyal', 'Matematik', 'Fen'],
+  'AYT': [
+    'Matematik',
+    'Edebiyat',
+    'Fizik',
+    'Kimya',
+    'Biyoloji',
+    'Tarih',
+    'Coğrafya',
+  ],
+};
+
+const _subjectColors = <String, Color>{
+  'Türkçe': Color(0xFF8B5CF6),
+  'Sosyal': Color(0xFFF59E0B),
+  'Matematik': Color(0xFF2563EB),
+  'Fen': Color(0xFF10B981),
+  'Edebiyat': Color(0xFF7C3AED),
+  'Fizik': Color(0xFF0EA5E9),
+  'Kimya': Color(0xFFEF4444),
+  'Biyoloji': Color(0xFF22C55E),
+  'Tarih': Color(0xFFF59E0B),
+  'Coğrafya': Color(0xFFD97706),
+};
+
+Color _colorFor(String subject) =>
+    _subjectColors[subject] ?? const Color(0xFF2563EB);
+
+String _netLabel(double net) =>
+    net.toStringAsFixed(net % 1 == 0 ? 0 : (net * 100 % 10 == 0 ? 1 : 2));
 
 class AnalysisScreen extends StatelessWidget {
   const AnalysisScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
+    final exam = AppScope.of(context).exams;
     final scheme = Theme.of(context).colorScheme;
-    final filtered = state.exams
-        .where((exam) => exam.type == state.examType)
-        .toList();
-    final visible = state.showAllExams ? filtered : filtered.take(2).toList();
-    final average = filtered.isEmpty
-        ? 0.0
-        : filtered.map((exam) => exam.net).reduce((a, b) => a + b) /
-              filtered.length;
-    final chartValues = filtered.reversed.map((exam) => exam.net).toList();
-    final weakSubject = state.examType == 'TYT' ? 'Fizik' : 'Kimya';
-    final subjectRows = state.examType == 'TYT'
-        ? const [
-            ('Matematik', '28 Doğru / 4 Yanlış', .78, Color(0xFF2563EB)),
-            ('Türkçe', '32 Doğru / 5 Yanlış', .84, Color(0xFF10B981)),
-            ('Fen Bilimleri', '12 Doğru / 6 Yanlış', .52, Color(0xFFEF4444)),
-            ('Sosyal Bilgiler', '15 Doğru / 2 Yanlış', .76, Color(0xFFF59E0B)),
-          ]
-        : const [
-            ('Matematik', '24 Doğru / 7 Yanlış', .68, Color(0xFF2563EB)),
-            ('Fizik', '9 Doğru / 4 Yanlış', .61, Color(0xFF0EA5E9)),
-            ('Kimya', '7 Doğru / 5 Yanlış', .48, Color(0xFFEF4444)),
-            ('Biyoloji', '10 Doğru / 2 Yanlış', .74, Color(0xFF10B981)),
-          ];
+    final stats = exam.stats;
+    final visible = exam.showAll ? stats.exams : stats.exams.take(2).toList();
 
     return PagePadding(
       child: Column(
@@ -57,7 +70,7 @@ class AnalysisScreen extends StatelessWidget {
                 ),
               ),
               IconButton.filled(
-                onPressed: () => _showAddExam(context, state),
+                onPressed: () => _showAddExam(context, exam),
                 icon: const Icon(Icons.add),
                 tooltip: 'Deneme ekle',
               ),
@@ -79,7 +92,7 @@ class AnalysisScreen extends StatelessWidget {
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           Text(
-                            'Son 10 Deneme (${state.examType})',
+                            'Son ${stats.netSeries.length} Deneme (${exam.examType})',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
@@ -90,15 +103,15 @@ class AnalysisScreen extends StatelessWidget {
                         ButtonSegment(value: 'TYT', label: Text('TYT')),
                         ButtonSegment(value: 'AYT', label: Text('AYT')),
                       ],
-                      selected: {state.examType},
+                      selected: {exam.examType},
                       onSelectionChanged: (value) =>
-                          state.setExamType(value.first),
+                          exam.setExamType(value.first),
                       showSelectedIcon: false,
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                _NetChart(values: chartValues),
+                _NetChart(values: stats.netSeries, emptyType: exam.examType),
               ],
             ),
           ),
@@ -108,7 +121,7 @@ class AnalysisScreen extends StatelessWidget {
               Expanded(
                 child: _SummaryCard(
                   icon: Icons.trending_up,
-                  value: average.toStringAsFixed(1),
+                  value: _netLabel(stats.averageNet),
                   label: 'Net Ortalaması',
                   color: scheme.primary,
                 ),
@@ -117,7 +130,7 @@ class AnalysisScreen extends StatelessWidget {
               Expanded(
                 child: _SummaryCard(
                   icon: Icons.task_alt,
-                  value: '${filtered.length}',
+                  value: '${stats.examCount}',
                   label: 'Çözülen Deneme',
                   color: scheme.secondary,
                 ),
@@ -126,190 +139,142 @@ class AnalysisScreen extends StatelessWidget {
               Expanded(
                 child: _SummaryCard(
                   icon: Icons.warning_amber,
-                  value: weakSubject,
-                  label: '%45 Başarı',
+                  value: stats.weakest?.subject ?? '—',
+                  label: stats.weakest == null
+                      ? 'Zayıf Ders'
+                      : '%${(stats.weakest!.successRate * 100).round()} Başarı',
                   color: scheme.error,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 24),
-          SectionTitle('Ders Bazlı Analiz (${state.examType})'),
+          SectionTitle('Ders Bazlı Analiz (${exam.examType})'),
           const SizedBox(height: 8),
-          SurfaceCard(
-            child: Column(
-              children: subjectRows
-                  .map(
-                    (row) => _SubjectRow(
-                      name: row.$1,
-                      detail: row.$2,
-                      value: row.$3,
-                      color: row.$4,
-                    ),
-                  )
-                  .toList(),
+          if (stats.subjects.isEmpty)
+            SurfaceCard(
+              border: true,
+              child: Text(
+                'Bu tür için henüz veri yok. Bir deneme ekleyince ders bazlı '
+                'analizin burada görünecek.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            )
+          else
+            SurfaceCard(
+              child: Column(
+                children: stats.subjects
+                    .map((subject) => _SubjectRow(stat: subject))
+                    .toList(),
+              ),
             ),
-          ),
           const SizedBox(height: 24),
           SectionTitle(
             'Son Denemeler',
-            action: filtered.length > 2
+            action: stats.exams.length > 2
                 ? TextButton(
-                    onPressed: state.toggleAllExams,
-                    child: Text(state.showAllExams ? 'Daha Az' : 'Tümünü Gör'),
+                    onPressed: exam.toggleShowAll,
+                    child: Text(exam.showAll ? 'Daha Az' : 'Tümünü Gör'),
                   )
                 : null,
           ),
           const SizedBox(height: 8),
-          ...visible.map(
-            (exam) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: SurfaceCard(
-                border: true,
-                onTap: () => _showExamDetail(context, state, exam),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: scheme.primary.withValues(alpha: .1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.description_outlined,
-                        color: scheme.primary,
-                      ),
+          if (visible.isEmpty)
+            SurfaceCard(
+              border: true,
+              child: Row(
+                children: [
+                  Icon(Icons.description_outlined, color: scheme.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Henüz ${exam.examType} denemesi eklemedin.',
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            exam.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            exam.date,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
+                  ),
+                  TextButton(
+                    onPressed: () => _showAddExam(context, exam),
+                    child: const Text('Ekle'),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...visible.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: SurfaceCard(
+                  border: true,
+                  onTap: () => _showExamDetail(context, exam, item),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: .1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.description_outlined,
+                          color: scheme.primary,
+                        ),
                       ),
-                    ),
-                    Text(
-                      exam.net.toStringAsFixed(exam.net % 1 == 0 ? 0 : 1),
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleLarge?.copyWith(color: scheme.primary),
-                    ),
-                    const SizedBox(width: 4),
-                    Text('Net', style: Theme.of(context).textTheme.labelMedium),
-                  ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              _dateLabel(item.takenAt),
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        _netLabel(item.totalNet),
+                        style: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(color: scheme.primary),
+                      ),
+                      const SizedBox(width: 4),
+                      Text('Net', style: Theme.of(context).textTheme.labelMedium),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Future<void> _showAddExam(BuildContext context, AppState state) async {
-    final formKey = GlobalKey<FormState>();
-    final name = TextEditingController();
-    final net = TextEditingController();
-    String type = state.examType;
-    final added = await showDialog<bool>(
+  Future<void> _showAddExam(BuildContext context, ExamController controller) async {
+    final exam = await showModalBottomSheet<PracticeExam>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setLocalState) => AlertDialog(
-          title: const Text('Deneme ekle'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'TYT', label: Text('TYT')),
-                    ButtonSegment(value: 'AYT', label: Text('AYT')),
-                  ],
-                  selected: {type},
-                  onSelectionChanged: (value) =>
-                      setLocalState(() => type = value.first),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: name,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(labelText: 'Deneme adı'),
-                  validator: (value) => value == null || value.trim().length < 3
-                      ? 'Deneme adını gir'
-                      : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: net,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: 'Net',
-                    helperText: type == 'TYT' ? '0–120' : '0–80',
-                  ),
-                  validator: (value) {
-                    final score = double.tryParse(
-                      (value ?? '').replaceAll(',', '.'),
-                    );
-                    final max = type == 'TYT' ? 120 : 80;
-                    if (score == null || score < 0 || score > max) {
-                      return '0 ile $max arasında bir değer gir';
-                    }
-                    return null;
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Vazgeç'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  Navigator.pop(context, true);
-                }
-              },
-              child: const Text('Kaydet'),
-            ),
-          ],
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
+        child: _ExamForm(initialType: controller.examType),
       ),
     );
-    final score = double.tryParse(net.text.replaceAll(',', '.'));
-    if (added == true && score != null) {
-      state.addExam(
-        PracticeExam(
-          name: name.text.trim(),
-          date: 'Bugün',
-          net: score,
-          type: type,
-        ),
-      );
+    if (exam != null) {
+      await controller.addExam(exam);
       if (context.mounted) AppSnack.show(context, 'Deneme analize eklendi');
     }
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    name.dispose();
-    net.dispose();
   }
 
   Future<void> _showExamDetail(
     BuildContext context,
-    AppState state,
+    ExamController controller,
     PracticeExam exam,
   ) async {
     final remove = await showModalBottomSheet<bool>(
@@ -322,12 +287,32 @@ class AnalysisScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(exam.name, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text('${exam.date} · ${exam.type}'),
+            const SizedBox(height: 4),
+            Text('${_dateLabel(exam.takenAt)} · ${exam.type}'),
             const SizedBox(height: 16),
             Text(
-              '${exam.net} net',
+              '${_netLabel(exam.totalNet)} net',
               style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 16),
+            ...exam.subjects.map(
+              (subject) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(subject.subject)),
+                    Text(
+                      '${subject.correct} D / ${subject.wrong} Y / ${subject.blank} B',
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      _netLabel(subject.net),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -342,17 +327,199 @@ class AnalysisScreen extends StatelessWidget {
         ),
       ),
     );
-    if (remove == true && context.mounted) {
-      state.removeExam(exam);
-      AppSnack.show(context, 'Deneme silindi');
+    if (remove == true) {
+      await controller.removeExam(exam.id);
+      if (context.mounted) AppSnack.show(context, 'Deneme silindi');
     }
+  }
+
+  static String _dateLabel(DateTime date) {
+    const months = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+}
+
+/// Modal form that collects a practice exam with per-subject D/Y/B counts.
+class _ExamForm extends StatefulWidget {
+  const _ExamForm({required this.initialType});
+
+  final String initialType;
+
+  @override
+  State<_ExamForm> createState() => _ExamFormState();
+}
+
+class _ExamFormState extends State<_ExamForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  late String _type = widget.initialType;
+  DateTime _date = DateTime.now();
+
+  // One (correct, wrong, blank) controller triple per possible subject.
+  final _fields = <String, List<TextEditingController>>{};
+
+  @override
+  void initState() {
+    super.initState();
+    final all = {..._examSubjects['TYT']!, ..._examSubjects['AYT']!};
+    for (final subject in all) {
+      _fields[subject] = [
+        TextEditingController(),
+        TextEditingController(),
+        TextEditingController(),
+      ];
+    }
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    for (final triple in _fields.values) {
+      for (final controller in triple) {
+        controller.dispose();
+      }
+    }
+    super.dispose();
+  }
+
+  int _parse(TextEditingController controller) =>
+      int.tryParse(controller.text.trim()) ?? 0;
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    final subjects = <ExamSubjectResult>[];
+    for (final subject in _examSubjects[_type]!) {
+      final triple = _fields[subject]!;
+      final result = ExamSubjectResult(
+        subject: subject,
+        correct: _parse(triple[0]),
+        wrong: _parse(triple[1]),
+        blank: _parse(triple[2]),
+      );
+      if (result.questionCount > 0) subjects.add(result);
+    }
+    if (subjects.isEmpty) {
+      AppSnack.show(context, 'En az bir ders için sonuç gir');
+      return;
+    }
+    Navigator.pop(
+      context,
+      PracticeExam(name: _name.text.trim(), type: _type, takenAt: _date, subjects: subjects),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subjects = _examSubjects[_type]!;
+    return Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        shrinkWrap: true,
+        children: [
+          Text('Deneme ekle', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 16),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'TYT', label: Text('TYT')),
+              ButtonSegment(value: 'AYT', label: Text('AYT')),
+            ],
+            selected: {_type},
+            onSelectionChanged: (value) => setState(() => _type = value.first),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _name,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(labelText: 'Deneme adı'),
+            validator: (value) => value == null || value.trim().length < 3
+                ? 'Deneme adını gir'
+                : null,
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _date,
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
+              );
+              if (picked != null) setState(() => _date = picked);
+            },
+            icon: const Icon(Icons.calendar_today_outlined, size: 18),
+            label: Text('Tarih: ${_date.day}.${_date.month}.${_date.year}'),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              const Expanded(flex: 4, child: Text('Ders')),
+              Expanded(child: Text('D', textAlign: TextAlign.center)),
+              Expanded(child: Text('Y', textAlign: TextAlign.center)),
+              Expanded(child: Text('B', textAlign: TextAlign.center)),
+            ],
+          ),
+          const Divider(),
+          ...subjects.map((subject) => _subjectRow(subject)),
+          const SizedBox(height: 20),
+          FilledButton(onPressed: _submit, child: const Text('Kaydet')),
+        ],
+      ),
+    );
+  }
+
+  Widget _subjectRow(String subject) {
+    final triple = _fields[subject]!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 4,
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _colorFor(subject),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(child: Text(subject, overflow: TextOverflow.ellipsis)),
+              ],
+            ),
+          ),
+          for (final controller in triple)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: TextFormField(
+                  controller: controller,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 
 class _NetChart extends StatelessWidget {
-  const _NetChart({required this.values});
+  const _NetChart({required this.values, required this.emptyType});
 
   final List<double> values;
+  final String emptyType;
 
   @override
   Widget build(BuildContext context) {
@@ -362,7 +529,7 @@ class _NetChart extends StatelessWidget {
         height: 140,
         child: Center(
           child: Text(
-            'Henüz ${AppScope.of(context).examType} denemesi eklenmedi.',
+            'Henüz $emptyType denemesi eklenmedi.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),
@@ -425,7 +592,12 @@ class _SummaryCard extends StatelessWidget {
       children: [
         Icon(icon, color: color, size: 20),
         const SizedBox(height: 6),
-        Text(value, style: Theme.of(context).textTheme.titleLarge),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         Text(
           label,
           textAlign: TextAlign.center,
@@ -437,41 +609,39 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _SubjectRow extends StatelessWidget {
-  const _SubjectRow({
-    required this.name,
-    required this.detail,
-    required this.value,
-    required this.color,
-  });
-  final String name;
-  final String detail;
-  final double value;
-  final Color color;
+  const _SubjectRow({required this.stat});
+  final SubjectStat stat;
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 9),
-    child: Column(
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 8),
-            Expanded(child: Text(name)),
-            Text(detail, style: Theme.of(context).textTheme.labelMedium),
-          ],
-        ),
-        const SizedBox(height: 8),
-        AnimatedProgressBar(
-          value: value,
-          minHeight: 6,
-          color: color,
-          backgroundColor: color.withValues(alpha: .12),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final color = _colorFor(stat.subject);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Expanded(child: Text(stat.subject)),
+              Text(
+                stat.detailLabel,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          AnimatedProgressBar(
+            value: stat.successRate,
+            minHeight: 6,
+            color: color,
+            backgroundColor: color.withValues(alpha: .12),
+          ),
+        ],
+      ),
+    );
+  }
 }

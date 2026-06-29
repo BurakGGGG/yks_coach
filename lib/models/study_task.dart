@@ -1,132 +1,126 @@
 import 'package:flutter/material.dart';
 
+/// Lifecycle state of a scheduled study task.
+enum TaskStatus {
+  planned,
+  completed,
+  skipped;
+
+  static TaskStatus fromName(String? name) => TaskStatus.values.firstWhere(
+    (status) => status.name == name,
+    orElse: () => TaskStatus.planned,
+  );
+}
+
+/// A single scheduled study block.
+///
+/// Time is stored structurally as [startMinutes]/[endMinutes] (minutes past
+/// midnight) rather than a free-text label, so reminders can be scheduled and
+/// durations computed reliably.
+@immutable
 class StudyTask {
-  StudyTask({
+  const StudyTask({
     this.id = '',
     required this.subject,
     required this.title,
-    required this.time,
-    required this.color,
     required this.scheduledDate,
+    required this.startMinutes,
+    required this.endMinutes,
+    required this.color,
     this.detail,
-    this.completed = false,
+    this.status = TaskStatus.planned,
+    this.createdAt,
   });
 
   final String id;
   final String subject;
   final String title;
-  final String time;
-  final Color color;
-  final DateTime scheduledDate;
-  final String? detail;
-  bool completed;
 
-  StudyTask copyWith({String? id, bool? completed}) => StudyTask(
-    id: id ?? this.id,
-    subject: subject,
-    title: title,
-    time: time,
-    color: color,
-    scheduledDate: scheduledDate,
-    detail: detail,
-    completed: completed ?? this.completed,
+  /// Date-only (local midnight) the task is scheduled for.
+  final DateTime scheduledDate;
+  final int startMinutes;
+  final int endMinutes;
+  final Color color;
+  final String? detail;
+  final TaskStatus status;
+  final DateTime? createdAt;
+
+  bool get completed => status == TaskStatus.completed;
+
+  int get durationMinutes => (endMinutes - startMinutes).clamp(0, 24 * 60);
+
+  String get startLabel => _hhmm(startMinutes);
+  String get endLabel => _hhmm(endMinutes);
+  String get timeLabel => '$startLabel - $endLabel';
+
+  StudyTask copyWith({
+    String? id,
+    String? subject,
+    String? title,
+    DateTime? scheduledDate,
+    int? startMinutes,
+    int? endMinutes,
+    Color? color,
+    String? detail,
+    TaskStatus? status,
+    DateTime? createdAt,
+  }) {
+    return StudyTask(
+      id: id ?? this.id,
+      subject: subject ?? this.subject,
+      title: title ?? this.title,
+      scheduledDate: scheduledDate ?? this.scheduledDate,
+      startMinutes: startMinutes ?? this.startMinutes,
+      endMinutes: endMinutes ?? this.endMinutes,
+      color: color ?? this.color,
+      detail: detail ?? this.detail,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  StudyTask toggleCompleted() => copyWith(
+    status: completed ? TaskStatus.planned : TaskStatus.completed,
   );
 
   Map<String, Object?> toMap() => {
     'subject': subject,
     'title': title,
-    'time': time,
+    'scheduledAt': DateTime(
+      scheduledDate.year,
+      scheduledDate.month,
+      scheduledDate.day,
+    ).millisecondsSinceEpoch,
+    'startMinutes': startMinutes,
+    'endMinutes': endMinutes,
     'color': color.toARGB32(),
-    'scheduledAt': scheduledDate.millisecondsSinceEpoch,
     'detail': detail,
-    'completed': completed,
+    'status': status.name,
   };
 
-  factory StudyTask.fromMap(String id, Map<String, dynamic> map) => StudyTask(
-    id: id,
-    subject: map['subject'] as String? ?? '',
-    title: map['title'] as String? ?? '',
-    time: map['time'] as String? ?? '',
-    color: Color(map['color'] as int? ?? 0xFF2563EB),
-    scheduledDate: DateTime.fromMillisecondsSinceEpoch(
-      map['scheduledAt'] as int? ?? 0,
-    ),
-    detail: map['detail'] as String?,
-    completed: map['completed'] as bool? ?? false,
-  );
-}
+  factory StudyTask.fromMap(String id, Map<String, dynamic> map) {
+    final scheduledAt = (map['scheduledAt'] as num?)?.toInt() ?? 0;
+    final createdAtMs = (map['createdAt'] as num?)?.toInt();
+    return StudyTask(
+      id: id,
+      subject: map['subject'] as String? ?? '',
+      title: map['title'] as String? ?? '',
+      scheduledDate: DateTime.fromMillisecondsSinceEpoch(scheduledAt),
+      startMinutes: (map['startMinutes'] as num?)?.toInt() ?? 9 * 60,
+      endMinutes: (map['endMinutes'] as num?)?.toInt() ?? 10 * 60,
+      color: Color((map['color'] as num?)?.toInt() ?? 0xFF2563EB),
+      detail: map['detail'] as String?,
+      status: TaskStatus.fromName(map['status'] as String?),
+      createdAt: createdAtMs == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(createdAtMs),
+    );
+  }
 
-class PracticeExam {
-  const PracticeExam({
-    this.id = '',
-    required this.name,
-    required this.date,
-    required this.net,
-    required this.type,
-  });
-
-  final String id;
-  final String name;
-  final String date;
-  final double net;
-  final String type;
-
-  PracticeExam copyWith({String? id}) => PracticeExam(
-    id: id ?? this.id,
-    name: name,
-    date: date,
-    net: net,
-    type: type,
-  );
-
-  Map<String, Object?> toMap() => {
-    'name': name,
-    'date': date,
-    'net': net,
-    'type': type,
-  };
-
-  factory PracticeExam.fromMap(String id, Map<String, dynamic> map) =>
-      PracticeExam(
-        id: id,
-        name: map['name'] as String? ?? '',
-        date: map['date'] as String? ?? '',
-        net: (map['net'] as num?)?.toDouble() ?? 0,
-        type: map['type'] as String? ?? 'TYT',
-      );
-}
-
-class CoachMessage {
-  const CoachMessage({
-    this.id = '',
-    required this.text,
-    required this.fromUser,
-    required this.time,
-  });
-
-  final String id;
-  final String text;
-  final bool fromUser;
-  final DateTime time;
-
-  CoachMessage copyWith({String? id}) => CoachMessage(
-    id: id ?? this.id,
-    text: text,
-    fromUser: fromUser,
-    time: time,
-  );
-
-  Map<String, Object?> toMap() => {
-    'text': text,
-    'fromUser': fromUser,
-    'time': time.millisecondsSinceEpoch,
-  };
-
-  factory CoachMessage.fromMap(String id, Map<String, dynamic> map) =>
-      CoachMessage(
-        id: id,
-        text: map['text'] as String? ?? '',
-        fromUser: map['fromUser'] as bool? ?? false,
-        time: DateTime.fromMillisecondsSinceEpoch(map['time'] as int? ?? 0),
-      );
+  static String _hhmm(int minutes) {
+    final clamped = minutes.clamp(0, 24 * 60);
+    final h = (clamped ~/ 60).toString().padLeft(2, '0');
+    final m = (clamped % 60).toString().padLeft(2, '0');
+    return '$h:$m';
+  }
 }

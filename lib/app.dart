@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
-import 'screens/auth_screen.dart';
 import 'screens/assistant_screen.dart';
+import 'screens/auth_screen.dart';
 import 'screens/goals_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/profile_screen.dart';
+import 'state/app_controller.dart';
 import 'state/auth_session.dart';
-import 'state/app_state.dart';
 import 'theme/app_theme.dart';
 import 'widgets/app_shell.dart';
 
@@ -22,21 +23,23 @@ class YksCoachRoot extends StatelessWidget {
       child: AnimatedBuilder(
         animation: session,
         builder: (context, _) => AnimatedBuilder(
-          animation: session.appState ?? session,
+          animation: session.app ?? session,
           builder: (context, _) {
-            final state = session.appState;
+            final app = session.app;
             return MaterialApp(
               title: 'Zihin Rehberi',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.light,
               darkTheme: AppTheme.dark,
-              themeMode: state?.themeMode ?? ThemeMode.light,
+              themeMode: app?.themeMode ?? ThemeMode.light,
               home: switch (session.stage) {
                 AuthStage.authentication => const AuthScreen(),
                 AuthStage.verification => const EmailVerificationScreen(),
-                AuthStage.ready when state != null => AppScope(
-                  notifier: state,
-                  child: _initialScreen(session.initialScreen),
+                AuthStage.ready when app != null => AppScope(
+                  notifier: app,
+                  child: app.onboardingCompleted
+                      ? _initialScreen(session.initialScreen)
+                      : const OnboardingScreen(),
                 ),
                 AuthStage.failure => const AuthFailureScreen(),
                 _ => const AuthLoadingScreen(),
@@ -49,24 +52,26 @@ class YksCoachRoot extends StatelessWidget {
   }
 }
 
+/// Test/preview harness that mounts an [AppController] directly without the auth
+/// flow.
 class YksCoachApp extends StatelessWidget {
-  const YksCoachApp({required this.state, this.initialScreen, super.key});
+  const YksCoachApp({required this.controller, this.initialScreen, super.key});
 
-  final AppState state;
+  final AppController controller;
   final String? initialScreen;
 
   @override
   Widget build(BuildContext context) {
     return AppScope(
-      notifier: state,
+      notifier: controller,
       child: AnimatedBuilder(
-        animation: state,
+        animation: controller,
         builder: (context, _) => MaterialApp(
           title: 'Zihin Rehberi',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
-          themeMode: state.themeMode,
+          themeMode: controller.themeMode,
           home: _initialScreen(initialScreen),
         ),
       ),

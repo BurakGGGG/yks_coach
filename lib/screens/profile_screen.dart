@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../state/app_state.dart';
+import '../state/app_controller.dart';
 import '../widgets/common.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -24,19 +24,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_initialized) return;
-    final state = AppScope.of(context);
-    _name = state.userName;
-    _grade = state.grade;
-    _field = state.studyField;
-    _university = state.targetUniversity;
-    _department = state.targetDepartment;
-    _rank = state.targetRank.toString();
+    final profile = AppScope.of(context).profile.profile;
+    _name = profile.userName;
+    _grade = profile.grade.isEmpty ? '12. Sınıf' : profile.grade;
+    _field = profile.studyField.isEmpty ? 'Sayısal' : profile.studyField;
+    _university = profile.targetUniversity;
+    _department = profile.targetDepartment;
+    _rank = profile.targetRank == 0 ? '' : profile.targetRank.toString();
     _initialized = true;
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
+    final profileController = AppScope.of(context).profile;
+    final profile = profileController.profile;
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Profilim')),
@@ -69,11 +70,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        state.userName,
+                        profile.userName.isEmpty ? 'Öğrenci' : profile.userName,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       Text(
-                        '${state.studyField} · ${state.grade}',
+                        [profile.studyField, profile.grade]
+                            .where((value) => value.isNotEmpty)
+                            .join(' · '),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ],
@@ -187,10 +190,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 FilledButton.icon(
                   onPressed: () {
                     if (!_formKey.currentState!.validate()) return;
-                    state.updateProfile(
+                    profileController.updateProfile(
                       name: _name.trim(),
-                      newGrade: _grade,
-                      field: _field,
+                      grade: _grade,
+                      studyField: _field,
                       university: _university.trim(),
                       department: _department.trim(),
                       rank: int.parse(_rank),

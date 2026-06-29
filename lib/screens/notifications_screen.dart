@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../state/app_state.dart';
+import '../state/app_controller.dart';
+import '../state/profile_controller.dart';
 import '../widgets/common.dart';
 
 class NotificationsScreen extends StatelessWidget {
@@ -8,7 +9,8 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context);
+    final profileController = AppScope.of(context).profile;
+    final profile = profileController.profile;
     return Scaffold(
       appBar: AppBar(title: const Text('Bildirimler')),
       body: Center(
@@ -28,9 +30,9 @@ class NotificationsScreen extends StatelessWidget {
                         subtitle: const Text(
                           'Her gün çalışma planını hatırlatır.',
                         ),
-                        value: state.dailyReminder,
+                        value: profile.dailyReminder,
                         onChanged: (value) =>
-                            state.updateNotification(daily: value),
+                            profileController.updateNotifications(daily: value),
                       ),
                       const Divider(),
                       SwitchListTile(
@@ -38,9 +40,9 @@ class NotificationsScreen extends StatelessWidget {
                         secondary: const Icon(Icons.task_alt_outlined),
                         title: const Text('Görev başlangıçları'),
                         subtitle: const Text('Görevden 10 dakika önce uyarır.'),
-                        value: state.taskReminder,
+                        value: profile.taskReminder,
                         onChanged: (value) =>
-                            state.updateNotification(task: value),
+                            profileController.updateNotifications(task: value),
                       ),
                       const Divider(),
                       SwitchListTile(
@@ -50,9 +52,9 @@ class NotificationsScreen extends StatelessWidget {
                         subtitle: const Text(
                           'Çalışma serine göre kısa öneriler gönderir.',
                         ),
-                        value: state.motivationReminder,
+                        value: profile.motivationReminder,
                         onChanged: (value) =>
-                            state.updateNotification(motivation: value),
+                            profileController.updateNotifications(motivation: value),
                       ),
                       const Divider(),
                       SwitchListTile(
@@ -62,9 +64,9 @@ class NotificationsScreen extends StatelessWidget {
                         subtitle: const Text(
                           'Yeni analiz hazır olduğunda haber verir.',
                         ),
-                        value: state.examReminder,
+                        value: profile.examReminder,
                         onChanged: (value) =>
-                            state.updateNotification(exam: value),
+                            profileController.updateNotifications(exam: value),
                       ),
                     ],
                   ),
@@ -72,7 +74,7 @@ class NotificationsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               SurfaceCard(
-                onTap: () => _pickTime(context, state),
+                onTap: () => _pickTime(context, profileController),
                 child: Row(
                   children: [
                     const Icon(Icons.schedule_outlined),
@@ -87,7 +89,7 @@ class NotificationsScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      state.reminderTime.format(context),
+                      profile.reminderTime.format(context),
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(width: 4),
@@ -109,11 +111,14 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _pickTime(BuildContext context, AppState state) async {
+  Future<void> _pickTime(
+    BuildContext context,
+    ProfileController profileController,
+  ) async {
     final time = await showTimePicker(
       context: context,
-      initialTime: state.reminderTime,
+      initialTime: profileController.profile.reminderTime,
     );
-    if (time != null) state.updateNotification(time: time);
+    if (time != null) profileController.updateNotifications(time: time);
   }
 }
