@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="tr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Program - Zihin Rehberi</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#e0e3e6",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#d5e3fc",
+                    "surface-bright": "#f8f9ff",
+                    "on-secondary": "#ffffff",
+                    "outline": "#737686",
+                    "on-surface-variant": "#434655",
+                    "tertiary": "#525658",
+                    "on-surface": "#0d1c2e",
+                    "secondary-fixed-dim": "#4edea3",
+                    "secondary": "#006c49",
+                    "on-error-container": "#93000a",
+                    "primary-container": "#2563eb",
+                    "primary-fixed": "#dbe1ff",
+                    "on-background": "#0d1c2e",
+                    "tertiary-container": "#6b6e70",
+                    "surface-container-high": "#dce9ff",
+                    "tertiary-fixed-dim": "#c4c7ca",
+                    "on-secondary-fixed": "#002113",
+                    "surface-tint": "#0053db",
+                    "error": "#ba1a1a",
+                    "surface-variant": "#d5e3fc",
+                    "on-tertiary-container": "#eff1f4",
+                    "secondary-fixed": "#6ffbbe",
+                    "inverse-surface": "#233144",
+                    "outline-variant": "#c3c6d7",
+                    "background": "#f8f9ff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container": "#e6eeff",
+                    "on-secondary-container": "#00714d",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "surface": "#f8f9ff",
+                    "surface-container-low": "#eff4ff",
+                    "secondary-container": "#6cf8bb",
+                    "on-primary": "#ffffff",
+                    "inverse-primary": "#b4c5ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-primary-fixed": "#00174b",
+                    "on-tertiary-fixed": "#191c1e",
+                    "primary": "#004ac6",
+                    "surface-dim": "#ccdbf3",
+                    "on-primary-container": "#eeefff",
+                    "on-secondary-fixed-variant": "#005236",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#44474a",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "base-unit": "4px",
+                    "section-gap": "40px",
+                    "gutter-md": "16px",
+                    "margin-mobile": "20px",
+                    "stack-sm": "8px",
+                    "stack-md": "16px",
+                    "stack-lg": "24px"
+            },
+            "fontFamily": {
+                    "title-lg": ["Plus Jakarta Sans"],
+                    "label-md": ["Plus Jakarta Sans"],
+                    "display-lg": ["Plus Jakarta Sans"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "display-lg-mobile": ["Plus Jakarta Sans"],
+                    "body-base": ["Plus Jakarta Sans"],
+                    "body-sm": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "display-lg-mobile": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-base": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background-color: #e0e3e6; /* Base background tertiary-fixed level 0 */
+            -webkit-tap-highlight-color: transparent;
+        }
+        .dark body {
+            background-color: #191c1e; /* on-tertiary-fixed for dark mode */
+        }
+        
+        /* Checkbox styling */
+        .custom-checkbox {
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #c3c6d7; /* outline-variant */
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: transparent;
+        }
+        .custom-checkbox:checked {
+            background-color: #006c49; /* Calm Green / secondary */
+            border-color: #006c49;
+        }
+        .custom-checkbox:checked::after {
+            content: 'check';
+            font-family: 'Material Symbols Outlined';
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .dark .custom-checkbox {
+            border-color: #737686; /* outline */
+        }
+        .dark .custom-checkbox:checked {
+            background-color: #6cf8bb; /* secondary-container */
+            border-color: #6cf8bb;
+        }
+        .dark .custom-checkbox:checked::after {
+            color: #002113; /* on-secondary-fixed */
+        }
+        
+        /* Week toggle scroll hide */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="text-on-surface dark:text-inverse-on-surface antialiased pt-20 pb-28 md:pb-8 flex justify-center">
+<!-- App Container -->
+<div class="w-full max-w-md mx-auto relative min-h-screen">
+<!-- TopAppBar (Web/Desktop Hidden, Mobile Shown) -->
+<header class="fixed top-0 w-full z-50 backdrop-blur-md bg-surface/80 dark:bg-inverse-surface/80 shadow-sm flex justify-between items-center px-margin-mobile h-16 max-w-md mx-auto left-0 right-0">
+<button class="text-on-surface-variant dark:text-inverse-on-surface hover:bg-primary-container/10 dark:hover:bg-inverse-primary/10 transition-colors p-2 rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined text-2xl">menu</span>
+</button>
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-primary dark:text-inverse-primary tracking-tight">Zihin Rehberi</h1>
+<button class="hover:bg-primary-container/10 dark:hover:bg-inverse-primary/10 transition-colors p-1 rounded-full active:scale-95 duration-200">
+<img alt="User profile avatar" class="w-8 h-8 rounded-full object-cover border-2 border-surface dark:border-inverse-surface" data-alt="A small circular avatar image showing a young student smiling gently in a bright, modern minimalist setting. The lighting is soft and natural, emphasizing a calm and focused study environment. The color palette incorporates cool blues and soft greys." src="https://lh3.googleusercontent.com/aida-public/AB6AXuADoMRPjQD75iuptKfJK4_d4XXnnIA59S1s9JrC0OkWquL90XBeTdV0iXkpjTLdy4oGVy-iX7yd5BIXB_-HCLbEBY3f_ODWc04Pa7fovK6MWNF6-xTu6ntLnOlZGZgWjzo1jueQ4alcfJtADBrvEMOLdQAjF-DEQKHntvQiNp4nsm3RUriRq-FY22laGBTvaqr2UCcnGJE3_jZ7wfVrbM1z3J_cLQUZSd1WKH3oC4YSOMFfz6MKbgbgVVYgY2saRZJttWLDZhyh2ZUz"/>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="px-margin-mobile flex flex-col gap-section-gap">
+<!-- Week Navigation / Mini Calendar -->
+<section class="flex flex-col gap-stack-md mt-4">
+<div class="flex justify-between items-center">
+<h2 class="font-headline-md text-headline-md text-on-surface dark:text-inverse-on-surface">Ekim 2023</h2>
+<div class="flex gap-2">
+<button class="w-8 h-8 rounded-full bg-surface-container dark:bg-surface-container/20 flex items-center justify-center text-primary dark:text-inverse-primary active:scale-95 transition-transform"><span class="material-symbols-outlined text-sm">chevron_left</span></button>
+<button class="w-8 h-8 rounded-full bg-surface-container dark:bg-surface-container/20 flex items-center justify-center text-primary dark:text-inverse-primary active:scale-95 transition-transform"><span class="material-symbols-outlined text-sm">chevron_right</span></button>
+</div>
+</div>
+<!-- Days Scroll -->
+<div class="flex gap-3 overflow-x-auto hide-scrollbar pb-2 snap-x">
+<!-- Day: Past -->
+<div class="snap-center flex-shrink-0 w-14 flex flex-col items-center justify-center py-3 rounded-2xl bg-surface dark:bg-inverse-surface shadow-[0_4px_20px_rgba(0,0,0,0.04)] text-on-surface-variant dark:text-outline border border-transparent">
+<span class="font-body-sm text-body-sm mb-1">Pzt</span>
+<span class="font-title-lg text-title-lg">16</span>
+</div>
+<!-- Day: Today (Active) -->
+<div class="snap-center flex-shrink-0 w-14 flex flex-col items-center justify-center py-3 rounded-2xl bg-primary dark:bg-inverse-primary shadow-[0_8px_30px_rgba(37,99,235,0.2)] text-on-primary dark:text-on-primary-fixed relative">
+<span class="font-body-sm text-body-sm mb-1">Sal</span>
+<span class="font-title-lg text-title-lg">17</span>
+<div class="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-secondary-container"></div>
+</div>
+<!-- Day: Future -->
+<div class="snap-center flex-shrink-0 w-14 flex flex-col items-center justify-center py-3 rounded-2xl bg-surface dark:bg-inverse-surface shadow-[0_4px_20px_rgba(0,0,0,0.04)] text-on-surface dark:text-inverse-on-surface border border-transparent">
+<span class="font-body-sm text-body-sm mb-1">Çar</span>
+<span class="font-title-lg text-title-lg">18</span>
+</div>
+<div class="snap-center flex-shrink-0 w-14 flex flex-col items-center justify-center py-3 rounded-2xl bg-surface dark:bg-inverse-surface shadow-[0_4px_20px_rgba(0,0,0,0.04)] text-on-surface dark:text-inverse-on-surface border border-transparent opacity-70">
+<span class="font-body-sm text-body-sm mb-1">Per</span>
+<span class="font-title-lg text-title-lg">19</span>
+</div>
+<div class="snap-center flex-shrink-0 w-14 flex flex-col items-center justify-center py-3 rounded-2xl bg-surface dark:bg-inverse-surface shadow-[0_4px_20px_rgba(0,0,0,0.04)] text-on-surface dark:text-inverse-on-surface border border-transparent opacity-70">
+<span class="font-body-sm text-body-sm mb-1">Cum</span>
+<span class="font-title-lg text-title-lg">20</span>
+</div>
+</div>
+<!-- Daily Progress Bar -->
+<div class="bg-surface dark:bg-inverse-surface rounded-xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex flex-col gap-2 relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-surface-variant dark:bg-surface-variant/20">
+<div class="h-full bg-primary dark:bg-inverse-primary" style="width: 35%;"></div>
+</div>
+<div class="flex justify-between items-end mt-1">
+<div>
+<span class="font-label-md text-label-md text-outline dark:text-outline-variant uppercase">Bugün</span>
+<p class="font-title-lg text-title-lg text-on-surface dark:text-inverse-on-surface">35% Tamamlandı</p>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant dark:text-inverse-on-surface/70">2/6 Görev</span>
+</div>
+</div>
+</section>
+<!-- Daily Schedule / Tasks (Bento Style Layout) -->
+<section class="flex flex-col gap-stack-md">
+<div class="flex justify-between items-center mb-2">
+<h3 class="font-title-lg text-title-lg text-on-surface dark:text-inverse-on-surface">Program</h3>
+<button class="text-primary dark:text-inverse-primary font-label-md text-label-md bg-primary-container/10 dark:bg-inverse-primary/20 px-3 py-1.5 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">add</span> Ekle
+                    </button>
+</div>
+<div class="grid grid-cols-1 gap-4">
+<!-- Task 1: Done -->
+<label class="bg-surface dark:bg-inverse-surface rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex items-start gap-4 cursor-pointer relative overflow-hidden opacity-60">
+<div class="absolute top-0 left-0 w-full h-1 bg-secondary"></div>
+<div class="mt-1 flex-shrink-0">
+<input checked="" class="custom-checkbox" type="checkbox"/>
+</div>
+<div class="flex-1">
+<div class="flex gap-2 mb-1">
+<span class="bg-surface-variant dark:bg-surface-variant/20 text-on-surface-variant dark:text-inverse-on-surface/80 px-2 py-0.5 rounded-full font-label-md text-[10px] uppercase tracking-wider">Matematik</span>
+<span class="text-outline dark:text-outline-variant font-label-md text-[10px] py-0.5 flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">schedule</span> 09:00 - 10:30</span>
+</div>
+<h4 class="font-body-base text-body-base text-on-surface dark:text-inverse-on-surface line-through">Türev - Kurallar ve Uygulamalar</h4>
+</div>
+</label>
+<!-- Task 2: Done -->
+<label class="bg-surface dark:bg-inverse-surface rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex items-start gap-4 cursor-pointer relative overflow-hidden opacity-60">
+<div class="absolute top-0 left-0 w-full h-1 bg-secondary"></div>
+<div class="mt-1 flex-shrink-0">
+<input checked="" class="custom-checkbox" type="checkbox"/>
+</div>
+<div class="flex-1">
+<div class="flex gap-2 mb-1">
+<span class="bg-surface-variant dark:bg-surface-variant/20 text-on-surface-variant dark:text-inverse-on-surface/80 px-2 py-0.5 rounded-full font-label-md text-[10px] uppercase tracking-wider">Türkçe</span>
+<span class="text-outline dark:text-outline-variant font-label-md text-[10px] py-0.5 flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">schedule</span> 10:45 - 11:30</span>
+</div>
+<h4 class="font-body-base text-body-base text-on-surface dark:text-inverse-on-surface line-through">Paragrafta Anlam Soru Çözümü</h4>
+</div>
+</label>
+<!-- Task 3: Active / Next -->
+<label class="bg-surface dark:bg-inverse-surface rounded-2xl p-4 shadow-[0_8px_30px_rgba(0,74,198,0.08)] border border-primary-fixed dark:border-inverse-primary flex items-start gap-4 cursor-pointer relative overflow-hidden transform scale-[1.02] transition-transform">
+<div class="absolute top-0 left-0 w-full h-1 bg-primary dark:bg-inverse-primary"></div>
+<div class="mt-1 flex-shrink-0">
+<input class="custom-checkbox" type="checkbox"/>
+</div>
+<div class="flex-1">
+<div class="flex gap-2 mb-1">
+<span class="bg-surface-container-highest dark:bg-inverse-primary/20 text-on-surface dark:text-inverse-primary px-2 py-0.5 rounded-full font-label-md text-[10px] uppercase tracking-wider">Geometri</span>
+<span class="text-primary dark:text-inverse-primary font-label-md text-[10px] py-0.5 flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">schedule</span> 13:00 - 14:30</span>
+</div>
+<h4 class="font-headline-md text-body-base font-semibold text-on-surface dark:text-inverse-on-surface mb-2">Üçgenler - Benzerlik ve Alan</h4>
+<div class="bg-surface-container-low dark:bg-surface-container/10 rounded-lg p-3 flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-on-surface-variant dark:text-inverse-on-surface/70">Konu Anlatımı + 40 Soru</span>
+<button class="bg-primary dark:bg-inverse-primary text-on-primary dark:text-on-primary-fixed w-8 h-8 rounded-full flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span>
+</button>
+</div>
+</div>
+</label>
+<!-- Task 4: Pending -->
+<label class="bg-surface dark:bg-inverse-surface rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex items-start gap-4 cursor-pointer relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-surface-variant dark:bg-surface-variant/20"></div>
+<div class="mt-1 flex-shrink-0">
+<input class="custom-checkbox" type="checkbox"/>
+</div>
+<div class="flex-1">
+<div class="flex gap-2 mb-1">
+<span class="bg-surface-variant dark:bg-surface-variant/20 text-on-surface-variant dark:text-inverse-on-surface/80 px-2 py-0.5 rounded-full font-label-md text-[10px] uppercase tracking-wider">Fizik</span>
+<span class="text-outline dark:text-outline-variant font-label-md text-[10px] py-0.5 flex items-center gap-0.5"><span class="material-symbols-outlined text-[12px]">schedule</span> 15:00 - 16:30</span>
+</div>
+<h4 class="font-body-base text-body-base text-on-surface dark:text-inverse-on-surface">Hareket - İvme Grafikleri</h4>
+</div>
+</label>
+</div>
+</section>
+<div class="h-8"></div> <!-- Spacer for bottom nav -->
+</main>
+<!-- BottomNavBar (Mobile Visible) -->
+<nav class="fixed bottom-0 w-full z-50 backdrop-blur-md bg-surface/80 dark:bg-inverse-surface/80 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] md:hidden max-w-md mx-auto left-0 right-0">
+<div class="flex justify-around items-center px-4 py-2 pb-safe">
+<!-- Inactive -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-inverse-on-surface/70 hover:bg-surface-container-high dark:hover:bg-surface-container/20 transition-all px-4 py-1 active:scale-90 duration-200 rounded-xl" href="#">
+<span class="material-symbols-outlined mb-1">dashboard</span>
+<span class="font-label-md text-label-md">Panel</span>
+</a>
+<!-- Inactive -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-inverse-on-surface/70 hover:bg-surface-container-high dark:hover:bg-surface-container/20 transition-all px-4 py-1 active:scale-90 duration-200 rounded-xl" href="#">
+<span class="material-symbols-outlined mb-1">timer</span>
+<span class="font-label-md text-label-md">Odak</span>
+</a>
+<!-- Inactive -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-inverse-on-surface/70 hover:bg-surface-container-high dark:hover:bg-surface-container/20 transition-all px-4 py-1 active:scale-90 duration-200 rounded-xl" href="#">
+<span class="material-symbols-outlined mb-1">analytics</span>
+<span class="font-label-md text-label-md">Analiz</span>
+</a>
+<!-- Active -->
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-inverse-primary/20 text-on-primary-container dark:text-inverse-primary rounded-xl px-4 py-1 active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">calendar_today</span>
+<span class="font-label-md text-label-md">Program</span>
+</a>
+</div>
+</nav>
+</div>
+</body></html>

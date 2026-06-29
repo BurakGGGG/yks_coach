@@ -1,0 +1,110 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owns(userId) {
+      return request.auth != null
+        && request.auth.uid == userId
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider in [
+          'password', 'google.com'
+        ];
+    }
+
+    function validUser() {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          'userName', 'grade', 'studyField', 'targetUniversity',
+          'targetDepartment', 'targetRank', 'dailyQuestionGoal',
+          'dailyStudyMinutes', 'prioritySubjects', 'dailyReminder',
+          'taskReminder', 'motivationReminder', 'examReminder',
+          'reminderMinutes', 'themeMode', 'focusSubject', 'focusMinutes',
+          'completedFocusSessions', 'totalFocusMinutes', 'updatedAt'
+        ])
+        && data.userName is string && data.userName.size() <= 100
+        && data.grade is string && data.grade.size() <= 30
+        && data.studyField is string && data.studyField.size() <= 30
+        && data.targetUniversity is string && data.targetUniversity.size() <= 120
+        && data.targetDepartment is string && data.targetDepartment.size() <= 120
+        && data.targetRank is int && data.targetRank >= 1
+        && data.dailyQuestionGoal is int
+        && data.dailyQuestionGoal >= 1 && data.dailyQuestionGoal <= 1000
+        && data.dailyStudyMinutes is int
+        && data.dailyStudyMinutes >= 1 && data.dailyStudyMinutes <= 1440
+        && data.prioritySubjects is list && data.prioritySubjects.size() <= 20
+        && data.dailyReminder is bool && data.taskReminder is bool
+        && data.motivationReminder is bool && data.examReminder is bool
+        && data.reminderMinutes is int
+        && data.reminderMinutes >= 0 && data.reminderMinutes < 1440
+        && data.themeMode in ['light', 'dark']
+        && data.focusSubject is string && data.focusSubject.size() <= 200
+        && data.focusMinutes is int
+        && data.focusMinutes >= 1 && data.focusMinutes <= 180
+        && data.completedFocusSessions is int
+        && data.completedFocusSessions >= 0
+        && data.totalFocusMinutes is int && data.totalFocusMinutes >= 0
+        && data.updatedAt is timestamp;
+    }
+
+    function validTask() {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          'subject', 'title', 'time', 'color', 'scheduledAt', 'detail',
+          'completed', 'updatedAt'
+        ])
+        && data.subject is string && data.subject.size() <= 60
+        && data.title is string && data.title.size() >= 3
+        && data.title.size() <= 200
+        && data.time is string && data.time.size() <= 40
+        && data.color is int && data.scheduledAt is int
+        && (!('detail' in data) || data.detail == null ||
+          (data.detail is string && data.detail.size() <= 500))
+        && data.completed is bool && data.updatedAt is timestamp;
+    }
+
+    function validExam() {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          'name', 'date', 'net', 'type', 'createdAt'
+        ])
+        && data.name is string && data.name.size() >= 3
+        && data.name.size() <= 200
+        && data.date is string && data.date.size() <= 60
+        && data.net is number && data.net >= 0 && data.net <= 120
+        && data.type in ['TYT', 'AYT'] && data.createdAt is timestamp;
+    }
+
+    function validMessage() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['text', 'fromUser', 'time', 'createdAt'])
+        && data.text is string && data.text.size() >= 1
+        && data.text.size() <= 2000 && data.fromUser is bool
+        && data.time is int && data.createdAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow read: if owns(userId);
+      allow create, update: if owns(userId) && validUser();
+      allow delete: if owns(userId);
+
+      match /tasks/{taskId} {
+        allow read, delete: if owns(userId);
+        allow create, update: if owns(userId) && validTask();
+      }
+
+      match /exams/{examId} {
+        allow read, delete: if owns(userId);
+        allow create, update: if owns(userId) && validExam();
+      }
+
+      match /coachMessages/{messageId} {
+        allow read, delete: if owns(userId);
+        allow create, update: if owns(userId) && validMessage();
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>YKS Coaching Dashboard</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#e0e3e6",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#d5e3fc",
+                    "surface-bright": "#f8f9ff",
+                    "on-secondary": "#ffffff",
+                    "outline": "#737686",
+                    "on-surface-variant": "#434655",
+                    "tertiary": "#525658",
+                    "on-surface": "#0d1c2e",
+                    "secondary-fixed-dim": "#4edea3",
+                    "secondary": "#006c49",
+                    "on-error-container": "#93000a",
+                    "primary-container": "#2563eb",
+                    "primary-fixed": "#dbe1ff",
+                    "on-background": "#0d1c2e",
+                    "tertiary-container": "#6b6e70",
+                    "surface-container-high": "#dce9ff",
+                    "tertiary-fixed-dim": "#c4c7ca",
+                    "on-secondary-fixed": "#002113",
+                    "surface-tint": "#0053db",
+                    "error": "#ba1a1a",
+                    "surface-variant": "#d5e3fc",
+                    "on-tertiary-container": "#eff1f4",
+                    "secondary-fixed": "#6ffbbe",
+                    "inverse-surface": "#233144",
+                    "outline-variant": "#c3c6d7",
+                    "background": "#f8f9ff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container": "#e6eeff",
+                    "on-secondary-container": "#00714d",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "surface": "#f8f9ff",
+                    "surface-container-low": "#eff4ff",
+                    "secondary-container": "#6cf8bb",
+                    "on-primary": "#ffffff",
+                    "inverse-primary": "#b4c5ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-primary-fixed": "#00174b",
+                    "on-tertiary-fixed": "#191c1e",
+                    "primary": "#004ac6",
+                    "surface-dim": "#ccdbf3",
+                    "on-primary-container": "#eeefff",
+                    "on-secondary-fixed-variant": "#005236",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#44474a",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "base-unit": "4px",
+                    "section-gap": "40px",
+                    "gutter-md": "16px",
+                    "margin-mobile": "20px",
+                    "stack-sm": "8px",
+                    "stack-md": "16px",
+                    "stack-lg": "24px"
+            },
+            "fontFamily": {
+                    "title-lg": ["Plus Jakarta Sans"],
+                    "label-md": ["Plus Jakarta Sans"],
+                    "display-lg": ["Plus Jakarta Sans"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "display-lg-mobile": ["Plus Jakarta Sans"],
+                    "body-base": ["Plus Jakarta Sans"],
+                    "body-sm": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                    "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                    "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                    "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                    "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                    "body-base": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                    "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.8s ease-in-out;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-body-base text-body-base antialiased min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 backdrop-blur-md bg-slate-900/80 border-b border-slate-800 shadow-sm flex justify-between items-center px-margin-mobile h-16">
+<button class="text-slate-300 hover:bg-slate-800 transition-colors active:scale-95 duration-200 p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="font-display-lg-mobile text-display-lg-mobile text-blue-400 tracking-tight">
+            Zihin Rehberi
+        </div>
+<div class="w-10 h-10 rounded-full overflow-hidden border border-slate-700 active:scale-95 duration-200 cursor-pointer">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="A clean, minimalist 3D render of a friendly, abstract user avatar face. Soft pastel lighting, high quality, centered composition against a neutral background. Modern tech aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmKEmCrRaUT0FAl1sGxsQBX3NWf8S776DGT2rIP1RQqpa-6FRPh8vZBla98H7d9SfkbZ6ml25EcTjJQONGDtdQEHMD03VI8Z20eNY5m_QAK-trYyrcpjxt7kTHAxorDycENomFxU_3LTfqAbMafRmY84T6E-ijppefgkiyYlE5kLCjxqSLw995gmpEkPGVHPtGsPyRhrA67EUM34qvjy09nGCXdBP8NHg3o5C8uRqerg0UqZGliTxyfbonHbJs0ydaE-RYsdcVIHjW"/>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="pt-24 px-margin-mobile max-w-lg mx-auto">
+<!-- Welcome Message -->
+<section class="mb-section-gap">
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-slate-50 mb-stack-sm">Günaydın, Ali.</h1>
+<p class="font-body-base text-body-base text-slate-300">Bugün hedeflerine bir adım daha yakınsın.</p>
+</section>
+<!-- Bento Grid: Daily Summary -->
+<section class="grid grid-cols-2 gap-gutter-md mb-section-gap">
+<!-- Progress Circle Card -->
+<div class="col-span-2 bg-slate-800 rounded-xl p-gutter-md flex items-center shadow-lg relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-slate-700"></div>
+<div class="absolute top-0 left-0 w-2/3 h-1 bg-blue-500"></div>
+<div class="relative w-24 h-24 flex-shrink-0">
+<svg class="w-full h-full" viewbox="0 0 100 100">
+</svg></div></div></section></main></body></html>

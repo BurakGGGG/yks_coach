@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>YKS Coaching Dashboard</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#e0e3e6",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#d5e3fc",
+                    "surface-bright": "#f8f9ff",
+                    "on-secondary": "#ffffff",
+                    "outline": "#737686",
+                    "on-surface-variant": "#434655",
+                    "tertiary": "#525658",
+                    "on-surface": "#0d1c2e",
+                    "secondary-fixed-dim": "#4edea3",
+                    "secondary": "#006c49",
+                    "on-error-container": "#93000a",
+                    "primary-container": "#2563eb",
+                    "primary-fixed": "#dbe1ff",
+                    "on-background": "#0d1c2e",
+                    "tertiary-container": "#6b6e70",
+                    "surface-container-high": "#dce9ff",
+                    "tertiary-fixed-dim": "#c4c7ca",
+                    "on-secondary-fixed": "#002113",
+                    "surface-tint": "#0053db",
+                    "error": "#ba1a1a",
+                    "surface-variant": "#d5e3fc",
+                    "on-tertiary-container": "#eff1f4",
+                    "secondary-fixed": "#6ffbbe",
+                    "inverse-surface": "#233144",
+                    "outline-variant": "#c3c6d7",
+                    "background": "#f8f9ff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container": "#e6eeff",
+                    "on-secondary-container": "#00714d",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "surface": "#f8f9ff",
+                    "surface-container-low": "#eff4ff",
+                    "secondary-container": "#6cf8bb",
+                    "on-primary": "#ffffff",
+                    "inverse-primary": "#b4c5ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-primary-fixed": "#00174b",
+                    "on-tertiary-fixed": "#191c1e",
+                    "primary": "#004ac6",
+                    "surface-dim": "#ccdbf3",
+                    "on-primary-container": "#eeefff",
+                    "on-secondary-fixed-variant": "#005236",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#44474a",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "base-unit": "4px",
+                    "section-gap": "40px",
+                    "gutter-md": "16px",
+                    "margin-mobile": "20px",
+                    "stack-sm": "8px",
+                    "stack-md": "16px",
+                    "stack-lg": "24px"
+            },
+            "fontFamily": {
+                    "title-lg": ["Plus Jakarta Sans"],
+                    "label-md": ["Plus Jakarta Sans"],
+                    "display-lg": ["Plus Jakarta Sans"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "display-lg-mobile": ["Plus Jakarta Sans"],
+                    "body-base": ["Plus Jakarta Sans"],
+                    "body-sm": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                    "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                    "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                    "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                    "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                    "body-base": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                    "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.8s ease-in-out;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-body-base text-body-base antialiased min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 backdrop-blur-md bg-surface/80 shadow-sm flex justify-between items-center px-margin-mobile h-16">
+<button class="text-on-surface-variant hover:bg-primary-container/10 transition-colors active:scale-95 duration-200 p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="font-display-lg-mobile text-display-lg-mobile text-primary tracking-tight">
+            Zihin Rehberi
+        </div>
+<div class="w-10 h-10 rounded-full overflow-hidden border border-surface-variant active:scale-95 duration-200 cursor-pointer">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="A clean, minimalist 3D render of a friendly, abstract user avatar face. Soft pastel lighting, high quality, centered composition against a neutral background. Modern tech aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmKEmCrRaUT0FAl1sGxsQBX3NWf8S776DGT2rIP1RQqpa-6FRPh8vZBla98H7d9SfkbZ6ml25EcTjJQONGDtdQEHMD03VI8Z20eNY5m_QAK-trYyrcpjxt7kTHAxorDycENomFxU_3LTfqAbMafRmY84T6E-ijppefgkiyYlE5kLCjxqSLw995gmpEkPGVHPtGsPyRhrA67EUM34qvjy09nGCXdBP8NHg3o5C8uRqerg0UqZGliTxyfbonHbJs0ydaE-RYsdcVIHjW"/>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="pt-24 px-margin-mobile max-w-lg mx-auto">
+<!-- Welcome Message -->
+<section class="mb-stack-lg">
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-on-surface mb-stack-sm">Günaydın, Ali.</h1>
+<p class="font-body-base text-body-base text-on-surface-variant">Bugün hedeflerine bir adım daha yakınsın.</p>
+</section>
+<!-- Daily Progress -->
+<section class="mb-stack-lg">
+<div class="bg-surface-container-lowest rounded-xl p-gutter-md shadow-[0_4px_20px_rgba(0,0,0,0.04)] flex items-center justify-between">
+<div>
+<h2 class="font-title-lg text-title-lg text-on-surface mb-base-unit">Bugünkü Hedef: %65</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">3/5 görev tamamlandı</p>
+</div>
+<div class="relative w-16 h-16 flex-shrink-0">
+<svg class="w-full h-full" viewbox="0 0 100 100">
+<circle class="text-surface-container-high stroke-current" cx="50" cy="50" fill="transparent" r="40" stroke-width="10"></circle>
+<circle class="text-primary stroke-current progress-ring__circle" cx="50" cy="50" fill="transparent" r="40" stroke-dasharray="251.2" stroke-dashoffset="87.92" stroke-linecap="round" stroke-width="10"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center font-label-md text-label-md text-primary">
+                65%
+            </div>
+</div>
+</div>
+</section>
+<!-- Quick Stats -->
+<section class="grid grid-cols-3 gap-stack-sm mb-stack-lg">
+<div class="bg-surface-container-low rounded-xl p-stack-sm flex flex-col items-center justify-center text-center">
+<span class="material-symbols-outlined text-primary mb-base-unit">timer</span>
+<div class="font-title-lg text-title-lg text-on-surface">4s</div>
+<div class="font-label-md text-label-md text-on-surface-variant">Toplam Çalışma</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-stack-sm flex flex-col items-center justify-center text-center">
+<span class="material-symbols-outlined text-secondary mb-base-unit">checklist</span>
+<div class="font-title-lg text-title-lg text-on-surface">120</div>
+<div class="font-label-md text-label-md text-on-surface-variant">Çözülen Soru</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-stack-sm flex flex-col items-center justify-center text-center">
+<span class="material-symbols-outlined text-tertiary mb-base-unit">psychology</span>
+<div class="font-title-lg text-title-lg text-on-surface">85%</div>
+<div class="font-label-md text-label-md text-on-surface-variant">Odak Süresi</div>
+</div>
+</section>
+<!-- Upcoming Tasks -->
+<section class="mb-stack-lg">
+<h3 class="font-title-lg text-title-lg text-on-surface mb-stack-sm">Sıradaki Görev</h3>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-gutter-md flex items-center gap-gutter-md">
+<div class="bg-primary-container text-on-primary-container p-3 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined">calculate</span>
+</div>
+<div class="flex-1">
+<h4 class="font-title-lg text-title-lg text-on-surface">Matematik</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Türev Soru Çözümü</p>
+</div>
+<div class="font-label-md text-label-md text-primary bg-primary-container/20 px-3 py-1 rounded-full">
+            13:00
+        </div>
+</div>
+</section>
+<!-- Weekly Activity -->
+<section class="mb-section-gap">
+<h3 class="font-title-lg text-title-lg text-on-surface mb-stack-sm">Haftalık Aktivite (Saat)</h3>
+<div class="bg-surface-container-lowest rounded-xl p-gutter-md shadow-[0_4px_20px_rgba(0,0,0,0.04)] h-48 flex items-end justify-between gap-2">
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="w-full bg-primary/20 rounded-t-md h-12 relative group"><div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">2s</div></div>
+<span class="font-label-md text-label-md text-on-surface-variant">Pzt</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="w-full bg-primary/40 rounded-t-md h-20 relative group"><div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">3.5s</div></div>
+<span class="font-label-md text-label-md text-on-surface-variant">Sal</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="w-full bg-primary/60 rounded-t-md h-28 relative group"><div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">5s</div></div>
+<span class="font-label-md text-label-md text-on-surface-variant">Çar</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="w-full bg-primary rounded-t-md h-32 relative group"><div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">6s</div></div>
+<span class="font-label-md text-label-md text-on-surface-variant">Per</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="w-full bg-primary/30 rounded-t-md h-16 relative group"><div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">3s</div></div>
+<span class="font-label-md text-label-md text-on-surface-variant">Cum</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="w-full bg-surface-container-high rounded-t-md h-8 relative group"><div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">1.5s</div></div>
+<span class="font-label-md text-label-md text-on-surface-variant">Cmt</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full">
+<div class="w-full bg-surface-container-high rounded-t-md h-4 relative group"><div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">0.5s</div></div>
+<span class="font-label-md text-label-md text-on-surface-variant">Paz</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface-container-lowest border-t border-outline-variant/30 px-6 py-2 flex justify-between items-center pb-safe max-w-lg mx-auto left-0 right-0">
+<a class="flex flex-col items-center justify-center w-16 h-14 group" href="#">
+<div class="w-16 h-8 rounded-full bg-secondary-container flex items-center justify-center mb-1 group-active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-on-secondary-container">dashboard</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Panel</span>
+</a>
+<a class="flex flex-col items-center justify-center w-16 h-14 group" href="#">
+<div class="w-16 h-8 rounded-full flex items-center justify-center mb-1 group-active:scale-95 transition-transform group-hover:bg-surface-container-high">
+<span class="material-symbols-outlined text-on-surface-variant">calendar_month</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Program</span>
+</a>
+<a class="flex flex-col items-center justify-center w-16 h-14 group" href="#">
+<div class="w-16 h-8 rounded-full flex items-center justify-center mb-1 group-active:scale-95 transition-transform group-hover:bg-surface-container-high">
+<span class="material-symbols-outlined text-on-surface-variant">monitoring</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">İstatistik</span>
+</a>
+<a class="flex flex-col items-center justify-center w-16 h-14 group" href="#">
+<div class="w-16 h-8 rounded-full flex items-center justify-center mb-1 group-active:scale-95 transition-transform group-hover:bg-surface-container-high">
+<span class="material-symbols-outlined text-on-surface-variant">smart_toy</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Asistan</span>
+</a>
+</nav>
+</body></html>
