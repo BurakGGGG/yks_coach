@@ -17,6 +17,7 @@ step() {
   "$@"
 }
 
+step dart format --output=none --set-exit-if-changed lib test
 step flutter analyze
 step flutter test
 

@@ -1,4 +1,5 @@
 import '../models/coach_message.dart';
+import '../models/device_registration.dart';
 import '../models/focus_session.dart';
 import '../models/practice_exam.dart';
 import '../models/study_task.dart';
@@ -45,6 +46,12 @@ abstract interface class CoachRepository {
   Future<void> clear();
 }
 
+/// Registers the current Android installation for FCM delivery.
+abstract interface class DeviceRepository {
+  Future<void> save(DeviceRegistration registration);
+  Future<void> delete(String installationId);
+}
+
 /// Bundle of every domain repository for one signed-in user. Controllers depend
 /// on the narrow interfaces above; the composition root wires a concrete bundle
 /// (Firestore in the app, in-memory in tests).
@@ -55,6 +62,7 @@ class AppRepositories {
     required this.exams,
     required this.focus,
     required this.coach,
+    required this.devices,
   });
 
   final ProfileRepository profile;
@@ -62,4 +70,5 @@ class AppRepositories {
   final ExamRepository exams;
   final FocusRepository focus;
   final CoachRepository coach;
+  final DeviceRepository devices;
 }

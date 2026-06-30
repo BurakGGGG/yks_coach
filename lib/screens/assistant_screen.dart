@@ -50,7 +50,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
     });
   }
 
-  Future<void> _confirmClear(BuildContext context, CoachController coach) async {
+  Future<void> _confirmClear(
+    BuildContext context,
+    CoachController coach,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -144,63 +147,66 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 child: coach.messages.isEmpty && !coach.typing
                     ? _EmptyConversation(scheme: scheme)
                     : ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                  itemCount:
-                      coach.messages.length +
-                      (coach.typing ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == coach.messages.length) {
-                      return const _TypingBubble();
-                    }
-                    final message = coach.messages[index];
-                    return AnimatedEntrance(
-                      key: ValueKey(
-                        '${message.createdAt.microsecondsSinceEpoch}-$index',
-                      ),
-                      child: Align(
-                        alignment: message.fromUser
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          constraints: const BoxConstraints(maxWidth: 315),
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: message.fromUser
-                                ? scheme.primaryContainer
-                                : scheme.surfaceContainerLowest,
-                            borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(18),
-                              topRight: const Radius.circular(18),
-                              bottomLeft: Radius.circular(
-                                message.fromUser ? 18 : 4,
-                              ),
-                              bottomRight: Radius.circular(
-                                message.fromUser ? 4 : 18,
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                        itemCount:
+                            coach.messages.length + (coach.typing ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index == coach.messages.length) {
+                            return const _TypingBubble();
+                          }
+                          final message = coach.messages[index];
+                          return AnimatedEntrance(
+                            key: ValueKey(
+                              '${message.createdAt.microsecondsSinceEpoch}-$index',
+                            ),
+                            child: Align(
+                              alignment: message.fromUser
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: Container(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 315,
+                                ),
+                                margin: const EdgeInsets.only(bottom: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: message.fromUser
+                                      ? scheme.primaryContainer
+                                      : scheme.surfaceContainerLowest,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: const Radius.circular(18),
+                                    topRight: const Radius.circular(18),
+                                    bottomLeft: Radius.circular(
+                                      message.fromUser ? 18 : 4,
+                                    ),
+                                    bottomRight: Radius.circular(
+                                      message.fromUser ? 4 : 18,
+                                    ),
+                                  ),
+                                  border: message.fromUser
+                                      ? null
+                                      : Border.all(
+                                          color: scheme.outlineVariant,
+                                        ),
+                                ),
+                                child: Text(
+                                  message.text,
+                                  style: TextStyle(
+                                    color: message.fromUser
+                                        ? scheme.onPrimaryContainer
+                                        : scheme.onSurface,
+                                    height: 1.45,
+                                  ),
+                                ),
                               ),
                             ),
-                            border: message.fromUser
-                                ? null
-                                : Border.all(color: scheme.outlineVariant),
-                          ),
-                          child: Text(
-                            message.text,
-                            style: TextStyle(
-                              color: message.fromUser
-                                  ? scheme.onPrimaryContainer
-                                  : scheme.onSurface,
-                              height: 1.45,
-                            ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
               SafeArea(
                 top: false,
@@ -225,9 +231,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                       const SizedBox(width: 8),
                       IconButton.filled(
                         tooltip: 'Gönder',
-                        onPressed: coach.typing
-                            ? null
-                            : () => _send(coach),
+                        onPressed: coach.typing ? null : () => _send(coach),
                         icon: const Icon(Icons.send_rounded),
                       ),
                     ],

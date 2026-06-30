@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../models/coach_message.dart';
+import '../models/device_registration.dart';
 import '../models/focus_session.dart';
 import '../models/practice_exam.dart';
 import '../models/study_task.dart';
@@ -24,6 +25,7 @@ AppRepositories memoryRepositories({
     exams: InMemoryExamRepository(exams),
     focus: InMemoryFocusRepository(focusSessions),
     coach: InMemoryCoachRepository(coachMessages),
+    devices: InMemoryDeviceRepository(),
   );
 }
 
@@ -65,10 +67,11 @@ class InMemoryTaskRepository implements TaskRepository {
   int _seq = 0;
 
   List<StudyTask> _sorted() {
-    final copy = [..._items]..sort((a, b) {
-      final byDate = a.scheduledDate.compareTo(b.scheduledDate);
-      return byDate != 0 ? byDate : a.startMinutes.compareTo(b.startMinutes);
-    });
+    final copy = [..._items]
+      ..sort((a, b) {
+        final byDate = a.scheduledDate.compareTo(b.scheduledDate);
+        return byDate != 0 ? byDate : a.startMinutes.compareTo(b.startMinutes);
+      });
     return List.unmodifiable(copy);
   }
 
@@ -148,7 +151,8 @@ class InMemoryFocusRepository implements FocusRepository {
   int _seq = 0;
 
   List<FocusSession> _sorted() {
-    final copy = [..._items]..sort((a, b) => b.startedAt.compareTo(a.startedAt));
+    final copy = [..._items]
+      ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
     return List.unmodifiable(copy);
   }
 
@@ -179,7 +183,8 @@ class InMemoryCoachRepository implements CoachRepository {
   int _seq = 0;
 
   List<CoachMessage> _sorted() {
-    final copy = [..._items]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final copy = [..._items]
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     return List.unmodifiable(copy);
   }
 
@@ -188,7 +193,9 @@ class InMemoryCoachRepository implements CoachRepository {
 
   @override
   Future<void> add(CoachMessage message) async {
-    _items.add(message.id.isEmpty ? message.copyWith(id: 'msg-${++_seq}') : message);
+    _items.add(
+      message.id.isEmpty ? message.copyWith(id: 'msg-${++_seq}') : message,
+    );
     _controller.add(_sorted());
   }
 
@@ -196,5 +203,19 @@ class InMemoryCoachRepository implements CoachRepository {
   Future<void> clear() async {
     _items.clear();
     _controller.add(_sorted());
+  }
+}
+
+class InMemoryDeviceRepository implements DeviceRepository {
+  final Map<String, DeviceRegistration> items = {};
+
+  @override
+  Future<void> save(DeviceRegistration registration) async {
+    items[registration.installationId] = registration;
+  }
+
+  @override
+  Future<void> delete(String installationId) async {
+    items.remove(installationId);
   }
 }

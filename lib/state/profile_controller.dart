@@ -96,8 +96,9 @@ class ProfileController extends ChangeNotifier {
     ),
   );
 
-  Future<void> setTheme(bool dark) =>
-      _save(_profile.copyWith(themeMode: dark ? ThemeMode.dark : ThemeMode.light));
+  Future<void> setTheme(bool dark) => _save(
+    _profile.copyWith(themeMode: dark ? ThemeMode.dark : ThemeMode.light),
+  );
 
   Future<void> setFocusMinutes(int minutes) =>
       _save(_profile.copyWith(focusMinutes: minutes));

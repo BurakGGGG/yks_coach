@@ -72,9 +72,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                                   ?.copyWith(color: scheme.onPrimaryContainer),
                             ),
                             Text(
-                              [profile.targetUniversity, profile.targetDepartment]
-                                  .where((value) => value.isNotEmpty)
-                                  .join(' · '),
+                              [
+                                profile.targetUniversity,
+                                profile.targetDepartment,
+                              ].where((value) => value.isNotEmpty).join(' · '),
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(color: scheme.onPrimaryContainer),
                               maxLines: 2,

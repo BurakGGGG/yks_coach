@@ -102,7 +102,8 @@ class DashboardScreen extends StatelessWidget {
               Expanded(
                 child: _Stat(
                   icon: Icons.checklist,
-                  value: '${stats.todayCompletedTasks}/${stats.todayTotalTasks}',
+                  value:
+                      '${stats.todayCompletedTasks}/${stats.todayTotalTasks}',
                   label: 'Tamamlanan\nGörev',
                   color: scheme.secondary,
                   onTap: () => app.setTab(3),
@@ -126,8 +127,7 @@ class DashboardScreen extends StatelessWidget {
           if (nextTask != null)
             SurfaceCard(
               border: true,
-              onTap: () =>
-                  app.startTaskFocus(nextTask.subject, nextTask.title),
+              onTap: () => app.startTaskFocus(nextTask.subject, nextTask.title),
               child: Row(
                 children: [
                   Container(
@@ -137,7 +137,10 @@ class DashboardScreen extends StatelessWidget {
                       color: nextTask.color.withValues(alpha: .16),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(Icons.menu_book_outlined, color: nextTask.color),
+                    child: Icon(
+                      Icons.menu_book_outlined,
+                      color: nextTask.color,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(

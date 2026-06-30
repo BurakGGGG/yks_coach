@@ -22,7 +22,8 @@ const _subjectColors = <String, Color>{
 
 List<String> get _subjects => _subjectColors.keys.toList();
 
-Color _colorFor(String subject) => _subjectColors[subject] ?? const Color(0xFF2563EB);
+Color _colorFor(String subject) =>
+    _subjectColors[subject] ?? const Color(0xFF2563EB);
 
 class ProgramScreen extends StatelessWidget {
   const ProgramScreen({super.key});
@@ -38,7 +39,8 @@ class ProgramScreen extends StatelessWidget {
     const dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
     final days = List.generate(
       7,
-      (index) => (dayNames[index], schedule.weekStart.add(Duration(days: index))),
+      (index) =>
+          (dayNames[index], schedule.weekStart.add(Duration(days: index))),
     );
 
     return PagePadding(
@@ -213,15 +215,31 @@ class ProgramScreen extends StatelessWidget {
 
   String _monthLabel(DateTime date) {
     const months = [
-      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+      'Ocak',
+      'Şubat',
+      'Mart',
+      'Nisan',
+      'Mayıs',
+      'Haziran',
+      'Temmuz',
+      'Ağustos',
+      'Eylül',
+      'Ekim',
+      'Kasım',
+      'Aralık',
     ];
     return '${months[date.month - 1]} ${date.year}';
   }
 
   String _selectedDayLabel(DateTime date) {
     const dayNames = [
-      'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar',
+      'Pazartesi',
+      'Salı',
+      'Çarşamba',
+      'Perşembe',
+      'Cuma',
+      'Cumartesi',
+      'Pazar',
     ];
     return '${dayNames[date.weekday - 1].toUpperCase()} · ${date.day}';
   }
@@ -238,10 +256,16 @@ Future<void> _showTaskDialog(
   String subject = existing?.subject ?? 'Matematik';
   TimeOfDay start = existing == null
       ? const TimeOfDay(hour: 17, minute: 0)
-      : TimeOfDay(hour: existing.startMinutes ~/ 60, minute: existing.startMinutes % 60);
+      : TimeOfDay(
+          hour: existing.startMinutes ~/ 60,
+          minute: existing.startMinutes % 60,
+        );
   TimeOfDay end = existing == null
       ? const TimeOfDay(hour: 18, minute: 0)
-      : TimeOfDay(hour: existing.endMinutes ~/ 60, minute: existing.endMinutes % 60);
+      : TimeOfDay(
+          hour: existing.endMinutes ~/ 60,
+          minute: existing.endMinutes % 60,
+        );
   final date = existing?.scheduledDate ?? schedule.selectedDate;
 
   int minutesOf(TimeOfDay t) => t.hour * 60 + t.minute;
@@ -260,7 +284,10 @@ Future<void> _showTaskDialog(
             setLocalState(() {
               start = picked;
               if (minutesOf(end) <= minutesOf(start)) {
-                end = TimeOfDay(hour: (picked.hour + 1) % 24, minute: picked.minute);
+                end = TimeOfDay(
+                  hour: (picked.hour + 1) % 24,
+                  minute: picked.minute,
+                );
               }
             });
           }
@@ -287,7 +314,10 @@ Future<void> _showTaskDialog(
                     initialValue: subject,
                     decoration: const InputDecoration(labelText: 'Ders'),
                     items: _subjects
-                        .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+                        .map(
+                          (item) =>
+                              DropdownMenuItem(value: item, child: Text(item)),
+                        )
                         .toList(),
                     onChanged: (value) => setLocalState(() => subject = value!),
                   ),
@@ -296,7 +326,8 @@ Future<void> _showTaskDialog(
                     controller: title,
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(labelText: 'Görev adı'),
-                    validator: (value) => value == null || value.trim().length < 3
+                    validator: (value) =>
+                        value == null || value.trim().length < 3
                         ? 'Görev adını gir'
                         : null,
                   ),
@@ -340,7 +371,10 @@ Future<void> _showTaskDialog(
               onPressed: () {
                 if (!formKey.currentState!.validate()) return;
                 if (minutesOf(end) <= minutesOf(start)) {
-                  AppSnack.show(context, 'Bitiş saati başlangıçtan sonra olmalı');
+                  AppSnack.show(
+                    context,
+                    'Bitiş saati başlangıçtan sonra olmalı',
+                  );
                   return;
                 }
                 Navigator.pop(context, true);
@@ -427,7 +461,9 @@ class _TaskCard extends StatelessWidget {
                   Text(
                     task.title,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      decoration: task.completed ? TextDecoration.lineThrough : null,
+                      decoration: task.completed
+                          ? TextDecoration.lineThrough
+                          : null,
                       color: task.completed
                           ? Theme.of(context).colorScheme.onSurfaceVariant
                           : null,

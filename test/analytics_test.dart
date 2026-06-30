@@ -35,7 +35,12 @@ void main() {
         type: 'TYT',
         takenAt: DateTime(2026, 1, 1),
         subjects: const [
-          ExamSubjectResult(subject: 'Matematik', correct: 30, wrong: 4, blank: 6),
+          ExamSubjectResult(
+            subject: 'Matematik',
+            correct: 30,
+            wrong: 4,
+            blank: 6,
+          ),
           ExamSubjectResult(subject: 'Türkçe', correct: 35, wrong: 0, blank: 5),
         ],
       );
@@ -52,8 +57,18 @@ void main() {
         type: 'TYT',
         takenAt: date,
         subjects: [
-          ExamSubjectResult(subject: 'Matematik', correct: mCorrect, wrong: mWrong, blank: 0),
-          const ExamSubjectResult(subject: 'Türkçe', correct: 35, wrong: 0, blank: 5),
+          ExamSubjectResult(
+            subject: 'Matematik',
+            correct: mCorrect,
+            wrong: mWrong,
+            blank: 0,
+          ),
+          const ExamSubjectResult(
+            subject: 'Türkçe',
+            correct: 35,
+            wrong: 0,
+            blank: 5,
+          ),
         ],
       );
     }
@@ -79,7 +94,12 @@ void main() {
           type: 'AYT',
           takenAt: DateTime(2026, 1, 2),
           subjects: const [
-            ExamSubjectResult(subject: 'Matematik', correct: 10, wrong: 0, blank: 0),
+            ExamSubjectResult(
+              subject: 'Matematik',
+              correct: 10,
+              wrong: 0,
+              blank: 0,
+            ),
           ],
         ),
       ];
@@ -89,55 +109,61 @@ void main() {
   });
 
   group('DashboardStats', () {
-    test('bugünün çalışma süresi ve haftalık dağılım gerçek kayıtlardan gelir', () {
-      final monday = DateTime(2026, 6, 29); // a Monday
-      final today = monday;
-      FocusSession session(DateTime start, int minutes) => FocusSession(
-        subject: 'Matematik',
-        startedAt: start,
-        endedAt: start.add(Duration(minutes: minutes)),
-      );
-
-      final tasks = [
-        StudyTask(
+    test(
+      'bugünün çalışma süresi ve haftalık dağılım gerçek kayıtlardan gelir',
+      () {
+        final monday = DateTime(2026, 6, 29); // a Monday
+        final today = monday;
+        FocusSession session(DateTime start, int minutes) => FocusSession(
           subject: 'Matematik',
-          title: 'Türev',
-          scheduledDate: today,
-          startMinutes: 540,
-          endMinutes: 600,
-          color: const Color(0xFF2563EB),
-          status: TaskStatus.completed,
-        ),
-        StudyTask(
-          subject: 'Fizik',
-          title: 'Hareket',
-          scheduledDate: today,
-          startMinutes: 600,
-          endMinutes: 660,
-          color: const Color(0xFF0EA5E9),
-        ),
-      ];
-      final sessions = [
-        session(today.add(const Duration(hours: 9)), 25),
-        session(today.add(const Duration(hours: 10)), 25),
-        session(monday.add(const Duration(days: 2, hours: 9)), 50), // Wednesday
-      ];
+          startedAt: start,
+          endedAt: start.add(Duration(minutes: minutes)),
+        );
 
-      final stats = DashboardStats.compute(
-        tasks: tasks,
-        sessions: sessions,
-        today: today,
-        weekStart: monday,
-      );
+        final tasks = [
+          StudyTask(
+            subject: 'Matematik',
+            title: 'Türev',
+            scheduledDate: today,
+            startMinutes: 540,
+            endMinutes: 600,
+            color: const Color(0xFF2563EB),
+            status: TaskStatus.completed,
+          ),
+          StudyTask(
+            subject: 'Fizik',
+            title: 'Hareket',
+            scheduledDate: today,
+            startMinutes: 600,
+            endMinutes: 660,
+            color: const Color(0xFF0EA5E9),
+          ),
+        ];
+        final sessions = [
+          session(today.add(const Duration(hours: 9)), 25),
+          session(today.add(const Duration(hours: 10)), 25),
+          session(
+            monday.add(const Duration(days: 2, hours: 9)),
+            50,
+          ), // Wednesday
+        ];
 
-      expect(stats.todayTotalTasks, 2);
-      expect(stats.todayCompletedTasks, 1);
-      expect(stats.todayCompletionRatio, 0.5);
-      expect(stats.todayStudyMinutes, 50);
-      expect(stats.todayFocusSessions, 2);
-      expect(stats.weeklyStudyHours[0], closeTo(50 / 60, 0.001)); // Monday
-      expect(stats.weeklyStudyHours[2], closeTo(50 / 60, 0.001)); // Wednesday
-    });
+        final stats = DashboardStats.compute(
+          tasks: tasks,
+          sessions: sessions,
+          today: today,
+          weekStart: monday,
+        );
+
+        expect(stats.todayTotalTasks, 2);
+        expect(stats.todayCompletedTasks, 1);
+        expect(stats.todayCompletionRatio, 0.5);
+        expect(stats.todayStudyMinutes, 50);
+        expect(stats.todayFocusSessions, 2);
+        expect(stats.weeklyStudyHours[0], closeTo(50 / 60, 0.001)); // Monday
+        expect(stats.weeklyStudyHours[2], closeTo(50 / 60, 0.001)); // Wednesday
+      },
+    );
   });
 
   group('model dönüşümleri', () {
@@ -156,13 +182,16 @@ void main() {
       expect(task.durationMinutes, 90);
     });
 
-    test('UserProfile eski belgeye schemaVersion ekler ve onboarding kapalıdır', () {
-      final profile = UserProfile.fromMap({'userName': 'Ada'});
-      expect(profile.userName, 'Ada');
-      expect(profile.schemaVersion, 1);
-      expect(profile.onboardingCompleted, isFalse);
-      expect(profile.reminderTime.hour, 19);
-    });
+    test(
+      'UserProfile eski belgeye schemaVersion ekler ve onboarding kapalıdır',
+      () {
+        final profile = UserProfile.fromMap({'userName': 'Ada'});
+        expect(profile.userName, 'Ada');
+        expect(profile.schemaVersion, 1);
+        expect(profile.onboardingCompleted, isFalse);
+        expect(profile.reminderTime.hour, 19);
+      },
+    );
 
     test('UserProfile round-trips through toMap', () {
       const profile = UserProfile(

@@ -29,7 +29,11 @@ UserProfile _onboarded({String name = 'Ada Yılmaz'}) => UserProfile(
   onboardingCompleted: true,
 );
 
-Future<void> _pumpApp(WidgetTester tester, AppController app, {String? screen}) async {
+Future<void> _pumpApp(
+  WidgetTester tester,
+  AppController app, {
+  String? screen,
+}) async {
   _setMobileSurface(tester);
   await tester.pumpWidget(YksCoachApp(controller: app, initialScreen: screen));
   await tester.pump(); // deliver first stream snapshots
@@ -142,7 +146,10 @@ void main() {
 
     await tester.tap(find.text('Görev ekle'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextFormField).first, 'Fonksiyon tekrarı');
+    await tester.enterText(
+      find.byType(TextFormField).first,
+      'Fonksiyon tekrarı',
+    );
     await tester.tap(find.widgetWithText(FilledButton, 'Ekle'));
     await tester.pumpAndSettle();
 
@@ -150,7 +157,9 @@ void main() {
     expect(app.schedule.selectedDayTasks.single.title, 'Fonksiyon tekrarı');
   });
 
-  testWidgets('boş analiz empty-state gösterir ve deneme formu açılır', (tester) async {
+  testWidgets('boş analiz empty-state gösterir ve deneme formu açılır', (
+    tester,
+  ) async {
     final app = _buildApp(profile: _onboarded(), initialTab: 2);
     await _pumpApp(tester, app);
     expect(find.text('Henüz TYT denemesi eklemedin.'), findsOneWidget);
@@ -234,7 +243,10 @@ void main() {
     await tester.tap(find.text('Hesabımı oluştur'));
     await tester.pump();
     expect(find.text('Geçerli bir e-posta adresi gir'), findsOneWidget);
-    expect(find.text('Şifre güvenlik koşullarını karşılamıyor'), findsOneWidget);
+    expect(
+      find.text('Şifre güvenlik koşullarını karşılamıyor'),
+      findsOneWidget,
+    );
     session.dispose();
   });
 }

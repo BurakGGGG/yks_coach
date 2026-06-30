@@ -18,6 +18,12 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
+    final pendingScreen = app.takePendingScreen();
+    if (pendingScreen == 'assistant') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) _open(context, const AssistantScreen());
+      });
+    }
     final profile = app.profile.profile;
     final auth = AuthScope.maybeOf(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
@@ -55,9 +61,10 @@ class AppShell extends StatelessWidget {
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             Text(
-                              [profile.studyField, profile.grade]
-                                  .where((value) => value.isNotEmpty)
-                                  .join(' · '),
+                              [
+                                profile.studyField,
+                                profile.grade,
+                              ].where((value) => value.isNotEmpty).join(' · '),
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],

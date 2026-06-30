@@ -239,11 +239,15 @@ class AnalysisScreen extends StatelessWidget {
                       ),
                       Text(
                         _netLabel(item.totalNet),
-                        style: Theme.of(context).textTheme.titleLarge
-                            ?.copyWith(color: scheme.primary),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleLarge?.copyWith(color: scheme.primary),
                       ),
                       const SizedBox(width: 4),
-                      Text('Net', style: Theme.of(context).textTheme.labelMedium),
+                      Text(
+                        'Net',
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
                     ],
                   ),
                 ),
@@ -254,7 +258,10 @@ class AnalysisScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _showAddExam(BuildContext context, ExamController controller) async {
+  Future<void> _showAddExam(
+    BuildContext context,
+    ExamController controller,
+  ) async {
     final exam = await showModalBottomSheet<PracticeExam>(
       context: context,
       isScrollControlled: true,
@@ -335,8 +342,18 @@ class AnalysisScreen extends StatelessWidget {
 
   static String _dateLabel(DateTime date) {
     const months = [
-      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+      'Ocak',
+      'Şubat',
+      'Mart',
+      'Nisan',
+      'Mayıs',
+      'Haziran',
+      'Temmuz',
+      'Ağustos',
+      'Eylül',
+      'Ekim',
+      'Kasım',
+      'Aralık',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
@@ -407,7 +424,12 @@ class _ExamFormState extends State<_ExamForm> {
     }
     Navigator.pop(
       context,
-      PracticeExam(name: _name.text.trim(), type: _type, takenAt: _date, subjects: subjects),
+      PracticeExam(
+        name: _name.text.trim(),
+        type: _type,
+        takenAt: _date,
+        subjects: subjects,
+      ),
     );
   }
 

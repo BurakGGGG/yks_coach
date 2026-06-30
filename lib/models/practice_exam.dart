@@ -58,8 +58,7 @@ class PracticeExam {
   final List<ExamSubjectResult> subjects;
   final DateTime? createdAt;
 
-  double get totalNet =>
-      subjects.fold(0, (sum, subject) => sum + subject.net);
+  double get totalNet => subjects.fold(0, (sum, subject) => sum + subject.net);
 
   int get totalCorrect =>
       subjects.fold(0, (sum, subject) => sum + subject.correct);

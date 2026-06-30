@@ -39,9 +39,12 @@ class DashboardStats {
     required DateTime today,
     required DateTime weekStart,
   }) {
-    final todays = tasks.where((t) => _sameDay(t.scheduledDate, today)).toList();
-    final todaySessions =
-        sessions.where((s) => _sameDay(s.startedAt, today)).toList();
+    final todays = tasks
+        .where((t) => _sameDay(t.scheduledDate, today))
+        .toList();
+    final todaySessions = sessions
+        .where((s) => _sameDay(s.startedAt, today))
+        .toList();
     final weekStartDate = _dateOnly(weekStart);
     final weekly = List<double>.filled(7, 0);
     for (final session in sessions) {
@@ -54,8 +57,10 @@ class DashboardStats {
     return DashboardStats(
       todayCompletedTasks: todays.where((t) => t.completed).length,
       todayTotalTasks: todays.length,
-      todayStudyMinutes:
-          todaySessions.fold(0, (sum, s) => sum + s.durationMinutes),
+      todayStudyMinutes: todaySessions.fold(
+        0,
+        (sum, s) => sum + s.durationMinutes,
+      ),
       todayFocusSessions: todaySessions.length,
       weeklyStudyHours: weekly,
     );
@@ -131,8 +136,7 @@ class AnalysisStats {
       );
     }).toList()..sort((a, b) => b.net.compareTo(a.net));
 
-    final withQuestions =
-        subjects.where((s) => s.questionCount > 0).toList();
+    final withQuestions = subjects.where((s) => s.questionCount > 0).toList();
     SubjectStat? weakest;
     if (withQuestions.isNotEmpty) {
       weakest = withQuestions.reduce(
@@ -141,9 +145,7 @@ class AnalysisStats {
     }
 
     // Chronological net series (oldest → newest), last 10.
-    final series = filtered.reversed
-        .map((exam) => exam.totalNet)
-        .toList();
+    final series = filtered.reversed.map((exam) => exam.totalNet).toList();
     final trimmed = series.length > 10
         ? series.sublist(series.length - 10)
         : series;

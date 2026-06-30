@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/coach_message.dart';
+import '../models/device_registration.dart';
 import '../models/focus_session.dart';
 import '../models/practice_exam.dart';
 import '../models/study_task.dart';
@@ -13,7 +14,10 @@ import 'repositories.dart';
 /// access by owner. Reads are live snapshots so two devices stay in sync;
 /// `createdAt` / `updatedAt` are written with server timestamps, never trusted
 /// from the client clock.
-AppRepositories firestoreRepositories(String uid, {FirebaseFirestore? firestore}) {
+AppRepositories firestoreRepositories(
+  String uid, {
+  FirebaseFirestore? firestore,
+}) {
   final db = firestore ?? FirebaseFirestore.instance;
   final userDoc = db.collection('users').doc(uid);
   return AppRepositories(
@@ -22,6 +26,7 @@ AppRepositories firestoreRepositories(String uid, {FirebaseFirestore? firestore}
     exams: _FirestoreExamRepository(userDoc.collection('exams')),
     focus: _FirestoreFocusRepository(userDoc.collection('focusSessions')),
     coach: _FirestoreCoachRepository(userDoc.collection('coachMessages')),
+    devices: _FirestoreDeviceRepository(userDoc.collection('devices')),
   );
 }
 
@@ -72,7 +77,9 @@ class _FirestoreTaskRepository implements TaskRepository {
         // Secondary sort by start time without needing a composite index.
         tasks.sort((a, b) {
           final byDate = a.scheduledDate.compareTo(b.scheduledDate);
-          return byDate != 0 ? byDate : a.startMinutes.compareTo(b.startMinutes);
+          return byDate != 0
+              ? byDate
+              : a.startMinutes.compareTo(b.startMinutes);
         });
         return tasks;
       });
@@ -177,4 +184,27 @@ class _FirestoreCoachRepository implements CoachRepository {
     }
     await batch.commit();
   }
+}
+
+class _FirestoreDeviceRepository implements DeviceRepository {
+  _FirestoreDeviceRepository(this._collection);
+
+  final CollectionReference<Map<String, dynamic>> _collection;
+
+  @override
+  Future<void> save(DeviceRegistration registration) async {
+    final doc = _collection.doc(registration.installationId);
+    await _collection.firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(doc);
+      transaction.set(doc, {
+        ...registration.toMap(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        if (!snapshot.exists) 'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    });
+  }
+
+  @override
+  Future<void> delete(String installationId) =>
+      _collection.doc(installationId).delete();
 }

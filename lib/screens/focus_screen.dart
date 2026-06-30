@@ -91,7 +91,9 @@ class FocusScreen extends StatelessWidget {
                           value: animatedValue,
                           strokeWidth: 6,
                           strokeCap: StrokeCap.round,
-                          backgroundColor: scheme.primary.withValues(alpha: .12),
+                          backgroundColor: scheme.primary.withValues(
+                            alpha: .12,
+                          ),
                         ),
                   ),
                 ),
@@ -209,7 +211,10 @@ class FocusScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _showSettings(BuildContext context, FocusController focus) async {
+  Future<void> _showSettings(
+    BuildContext context,
+    FocusController focus,
+  ) async {
     double minutes = focus.focusMinutes.toDouble();
     final result = await showDialog<int>(
       context: context,

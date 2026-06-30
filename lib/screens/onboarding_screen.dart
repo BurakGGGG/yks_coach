@@ -28,7 +28,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   double _questionGoal = 80;
   double _studyMinutes = 180;
 
-  static const _grades = ['9. Sınıf', '10. Sınıf', '11. Sınıf', '12. Sınıf', 'Mezun'];
+  static const _grades = [
+    '9. Sınıf',
+    '10. Sınıf',
+    '11. Sınıf',
+    '12. Sınıf',
+    'Mezun',
+  ];
   static const _fields = ['Sayısal', 'Eşit Ağırlık', 'Sözel', 'Dil'];
 
   @override
@@ -42,8 +48,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _saving) return;
     setState(() => _saving = true);
-    final profile = AppScope.of(context).profile;
-    await profile.completeOnboarding(
+    final app = AppScope.of(context);
+    await app.completeOnboarding(
       const UserProfile().copyWith(
         userName: _name.trim(),
         grade: _grade,
@@ -71,7 +77,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
                 children: [
-                  Icon(Icons.psychology_outlined, size: 48, color: scheme.primary),
+                  Icon(
+                    Icons.psychology_outlined,
+                    size: 48,
+                    color: scheme.primary,
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     'Zihin Rehberi’ne hoş geldin',
@@ -113,7 +123,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             prefixIcon: Icon(Icons.school_outlined),
                           ),
                           items: _grades
-                              .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                              .map(
+                                (v) =>
+                                    DropdownMenuItem(value: v, child: Text(v)),
+                              )
                               .toList(),
                           onChanged: (value) => setState(() => _grade = value!),
                         ),
@@ -125,7 +138,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             prefixIcon: Icon(Icons.category_outlined),
                           ),
                           items: _fields
-                              .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                              .map(
+                                (v) =>
+                                    DropdownMenuItem(value: v, child: Text(v)),
+                              )
                               .toList(),
                           onChanged: (value) => setState(() => _field = value!),
                         ),

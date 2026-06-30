@@ -1,11 +1,14 @@
 import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
 import 'state/auth_session.dart';
 
 Future<void> main() async {
@@ -21,11 +24,17 @@ Future<void> main() async {
     runApp(_FirebaseBootstrapFailure(message: error.toString()));
     return;
   }
+  final notifications = AndroidNotificationService();
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    await notifications.initialize();
+  }
   final session = AuthSession(
     auth: AuthService(),
     initialTab: tab.clamp(0, 3),
     initialDark: dark,
     initialScreen: screen,
+    notificationGateway: notifications,
   );
   runApp(YksCoachRoot(session: session));
   unawaited(session.initialize());

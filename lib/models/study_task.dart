@@ -79,9 +79,8 @@ class StudyTask {
     );
   }
 
-  StudyTask toggleCompleted() => copyWith(
-    status: completed ? TaskStatus.planned : TaskStatus.completed,
-  );
+  StudyTask toggleCompleted() =>
+      copyWith(status: completed ? TaskStatus.planned : TaskStatus.completed);
 
   Map<String, Object?> toMap() => {
     'subject': subject,

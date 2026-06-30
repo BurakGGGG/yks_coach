@@ -74,9 +74,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       Text(
-                        [profile.studyField, profile.grade]
-                            .where((value) => value.isNotEmpty)
-                            .join(' · '),
+                        [
+                          profile.studyField,
+                          profile.grade,
+                        ].where((value) => value.isNotEmpty).join(' · '),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ],

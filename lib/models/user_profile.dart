@@ -21,10 +21,10 @@ class UserProfile {
     this.dailyQuestionGoal = 80,
     this.dailyStudyMinutes = 180,
     this.prioritySubjects = const [],
-    this.dailyReminder = true,
-    this.taskReminder = true,
+    this.dailyReminder = false,
+    this.taskReminder = false,
     this.motivationReminder = false,
-    this.examReminder = true,
+    this.examReminder = false,
     this.reminderMinutes = 19 * 60,
     this.focusMinutes = 25,
     this.themeMode = ThemeMode.light,
@@ -153,17 +153,18 @@ class UserProfile {
       prioritySubjects: subjects is List
           ? subjects.whereType<String>().toList()
           : const [],
-      dailyReminder: data['dailyReminder'] as bool? ?? true,
-      taskReminder: data['taskReminder'] as bool? ?? true,
+      dailyReminder: data['dailyReminder'] as bool? ?? false,
+      taskReminder: data['taskReminder'] as bool? ?? false,
       motivationReminder: data['motivationReminder'] as bool? ?? false,
-      examReminder: data['examReminder'] as bool? ?? true,
+      examReminder: data['examReminder'] as bool? ?? false,
       reminderMinutes: (data['reminderMinutes'] as num?)?.toInt() ?? 19 * 60,
       focusMinutes: (data['focusMinutes'] as num?)?.toInt() ?? 25,
       themeMode: data['themeMode'] == 'dark' ? ThemeMode.dark : ThemeMode.light,
       onboardingCompleted: data['onboardingCompleted'] as bool? ?? false,
       locale: data['locale'] as String? ?? 'tr_TR',
       timeZone: data['timeZone'] as String? ?? 'Europe/Istanbul',
-      schemaVersion: (data['schemaVersion'] as num?)?.toInt() ?? kCurrentSchemaVersion,
+      schemaVersion:
+          (data['schemaVersion'] as num?)?.toInt() ?? kCurrentSchemaVersion,
     );
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_controller.dart';
-import '../state/profile_controller.dart';
 import '../widgets/common.dart';
 
 class NotificationsScreen extends StatelessWidget {
@@ -9,8 +8,10 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final profileController = AppScope.of(context).profile;
-    final profile = profileController.profile;
+    final app = AppScope.of(context);
+    final notifications = app.notifications;
+    final profile = app.profile.profile;
+    final enabled = notifications.supported && !notifications.busy;
     return Scaffold(
       appBar: AppBar(title: const Text('Bildirimler')),
       body: Center(
@@ -31,8 +32,9 @@ class NotificationsScreen extends StatelessWidget {
                           'Her gün çalışma planını hatırlatır.',
                         ),
                         value: profile.dailyReminder,
-                        onChanged: (value) =>
-                            profileController.updateNotifications(daily: value),
+                        onChanged: enabled
+                            ? (value) => _update(context, app, daily: value)
+                            : null,
                       ),
                       const Divider(),
                       SwitchListTile(
@@ -41,8 +43,9 @@ class NotificationsScreen extends StatelessWidget {
                         title: const Text('Görev başlangıçları'),
                         subtitle: const Text('Görevden 10 dakika önce uyarır.'),
                         value: profile.taskReminder,
-                        onChanged: (value) =>
-                            profileController.updateNotifications(task: value),
+                        onChanged: enabled
+                            ? (value) => _update(context, app, task: value)
+                            : null,
                       ),
                       const Divider(),
                       SwitchListTile(
@@ -53,8 +56,10 @@ class NotificationsScreen extends StatelessWidget {
                           'Çalışma serine göre kısa öneriler gönderir.',
                         ),
                         value: profile.motivationReminder,
-                        onChanged: (value) =>
-                            profileController.updateNotifications(motivation: value),
+                        onChanged: enabled
+                            ? (value) =>
+                                  _update(context, app, motivation: value)
+                            : null,
                       ),
                       const Divider(),
                       SwitchListTile(
@@ -65,8 +70,9 @@ class NotificationsScreen extends StatelessWidget {
                           'Yeni analiz hazır olduğunda haber verir.',
                         ),
                         value: profile.examReminder,
-                        onChanged: (value) =>
-                            profileController.updateNotifications(exam: value),
+                        onChanged: enabled
+                            ? (value) => _update(context, app, exam: value)
+                            : null,
                       ),
                     ],
                   ),
@@ -74,7 +80,7 @@ class NotificationsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               SurfaceCard(
-                onTap: () => _pickTime(context, profileController),
+                onTap: enabled ? () => _pickTime(context, app) : null,
                 child: Row(
                   children: [
                     const Icon(Icons.schedule_outlined),
@@ -97,12 +103,29 @@ class NotificationsScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: () =>
-                    AppSnack.show(context, 'Bildirim tercihleri kaydedildi'),
-                icon: const Icon(Icons.check),
-                label: const Text('Tercihleri kaydet'),
+              const SizedBox(height: 16),
+              SurfaceCard(
+                border: true,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      notifications.supported
+                          ? Icons.security_outlined
+                          : Icons.phone_android_outlined,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        notifications.supported
+                            ? 'İzin, yalnızca ilk bildirimi açtığında istenir. '
+                                  'Görev hatırlatmaları cihazında saklanır.'
+                            : 'Bildirimler ilk sürümde yalnızca Android '
+                                  'uygulamasında kullanılabilir.',
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -111,14 +134,38 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _pickTime(
-    BuildContext context,
-    ProfileController profileController,
-  ) async {
+  Future<void> _pickTime(BuildContext context, AppController app) async {
     final time = await showTimePicker(
       context: context,
-      initialTime: profileController.profile.reminderTime,
+      initialTime: app.profile.profile.reminderTime,
     );
-    if (time != null) profileController.updateNotifications(time: time);
+    if (time != null && context.mounted) {
+      await _update(context, app, time: time);
+    }
+  }
+
+  Future<void> _update(
+    BuildContext context,
+    AppController app, {
+    bool? daily,
+    bool? task,
+    bool? motivation,
+    bool? exam,
+    TimeOfDay? time,
+  }) async {
+    final saved = await app.notifications.updatePreferences(
+      daily: daily,
+      task: task,
+      motivation: motivation,
+      exam: exam,
+      time: time,
+    );
+    if (!context.mounted) return;
+    AppSnack.show(
+      context,
+      saved
+          ? 'Bildirim tercihi kaydedildi'
+          : app.notifications.errorMessage ?? 'Bildirim tercihi kaydedilemedi',
+    );
   }
 }

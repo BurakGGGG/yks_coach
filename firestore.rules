@@ -107,6 +107,28 @@ service cloud.firestore {
         && data.createdAt is timestamp;
     }
 
+    function validDevice(installationId) {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          'installationId', 'fcmToken', 'platform', 'timeZone',
+          'dailyReminder', 'taskReminder', 'motivationReminder',
+          'examReminder', 'createdAt', 'updatedAt'
+        ])
+        && data.installationId == installationId
+        && data.installationId is string
+        && data.installationId.size() >= 16
+        && data.installationId.size() <= 128
+        && data.fcmToken is string
+        && data.fcmToken.size() >= 20
+        && data.fcmToken.size() <= 4096
+        && data.platform == 'android'
+        && data.timeZone is string && data.timeZone.size() <= 60
+        && data.dailyReminder is bool && data.taskReminder is bool
+        && data.motivationReminder is bool && data.examReminder is bool
+        && isTimestampOrAbsent(data, 'createdAt')
+        && data.updatedAt is timestamp;
+    }
+
     match /users/{userId} {
       allow read: if owns(userId);
       allow create, update: if owns(userId) && validUser();
@@ -130,6 +152,11 @@ service cloud.firestore {
       match /coachMessages/{messageId} {
         allow read, delete: if owns(userId);
         allow create: if owns(userId) && validMessage();
+      }
+
+      match /devices/{installationId} {
+        allow read, delete: if owns(userId);
+        allow create, update: if owns(userId) && validDevice(installationId);
       }
     }
 
