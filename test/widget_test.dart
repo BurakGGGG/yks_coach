@@ -148,6 +148,7 @@ void main() {
 
   testWidgets('pomodoro sayacı başlatılır ve sıfırlanır', (tester) async {
     final app = _buildApp(profile: _onboarded(), initialTab: 1);
+    app.focus.selectSubject('Matematik');
     await _pumpApp(tester, app);
     await tester.tap(find.text('Başla'));
     await tester.pump(const Duration(seconds: 1));

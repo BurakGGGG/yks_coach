@@ -69,8 +69,11 @@ class _FirestoreTaskRepository implements TaskRepository {
   final CollectionReference<Map<String, dynamic>> _collection;
 
   @override
-  Stream<List<StudyTask>> watch() =>
-      _collection.orderBy('scheduledAt').snapshots().map((snapshot) {
+  Stream<List<StudyTask>> watch() => _collection
+      .orderBy('scheduledAt', descending: true)
+      .limit(500)
+      .snapshots()
+      .map((snapshot) {
         final tasks = snapshot.docs
             .map((doc) => StudyTask.fromMap(doc.id, _normalize(doc.data())))
             .toList();

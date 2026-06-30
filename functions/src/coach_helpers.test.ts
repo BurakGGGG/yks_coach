@@ -6,6 +6,7 @@ import {
   parseAskCoachInput,
   safeTimeZone,
   verifiedProvider,
+  zonedDayRange,
 } from "./coach_helpers.js";
 
 test("askCoach input trims and validates fields", () => {
@@ -55,4 +56,18 @@ test("only verified password and Google providers pass", () => {
     }),
     false,
   );
+});
+
+test("local day range follows daylight-saving boundaries", () => {
+  const spring = zonedDayRange(
+    new Date("2026-03-29T12:00:00.000Z"),
+    "Europe/Berlin",
+  );
+  const autumn = zonedDayRange(
+    new Date("2026-10-25T12:00:00.000Z"),
+    "Europe/Berlin",
+  );
+
+  assert.equal(spring.end - spring.start, 23 * 60 * 60 * 1000);
+  assert.equal(autumn.end - autumn.start, 25 * 60 * 60 * 1000);
 });

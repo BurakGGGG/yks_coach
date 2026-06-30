@@ -11,10 +11,6 @@ service cloud.firestore {
         ];
     }
 
-    function isTimestampOrAbsent(data, field) {
-      return !(field in data) || data[field] is timestamp;
-    }
-
     function validUser() {
       let data = request.resource.data;
       return data.keys().hasOnly([
@@ -25,17 +21,23 @@ service cloud.firestore {
           'reminderMinutes', 'focusMinutes', 'themeMode', 'onboardingCompleted',
           'locale', 'timeZone', 'schemaVersion', 'createdAt', 'updatedAt'
         ])
-        && data.userName is string && data.userName.size() <= 100
-        && data.grade is string && data.grade.size() <= 30
-        && data.studyField is string && data.studyField.size() <= 30
+        && data.userName is string && data.userName.size() >= 3
+        && data.userName.size() <= 100
+        && data.grade in [
+          '9. Sınıf', '10. Sınıf', '11. Sınıf', '12. Sınıf', 'Mezun'
+        ]
+        && data.studyField in ['Sayısal', 'Eşit Ağırlık', 'Sözel', 'Dil']
         && data.targetUniversity is string && data.targetUniversity.size() <= 120
         && data.targetDepartment is string && data.targetDepartment.size() <= 120
-        && data.targetRank is int && data.targetRank >= 0
+        && data.targetRank is int && data.targetRank >= 1
         && data.dailyQuestionGoal is int
         && data.dailyQuestionGoal >= 1 && data.dailyQuestionGoal <= 1000
         && data.dailyStudyMinutes is int
         && data.dailyStudyMinutes >= 1 && data.dailyStudyMinutes <= 1440
-        && data.prioritySubjects is list && data.prioritySubjects.size() <= 20
+        && data.prioritySubjects is list && data.prioritySubjects.size() <= 6
+        && data.prioritySubjects.hasOnly([
+          'Matematik', 'Türkçe', 'Fizik', 'Kimya', 'Biyoloji', 'Geometri'
+        ])
         && data.dailyReminder is bool && data.taskReminder is bool
         && data.motivationReminder is bool && data.examReminder is bool
         && data.reminderMinutes is int
@@ -47,7 +49,7 @@ service cloud.firestore {
         && data.locale is string && data.locale.size() <= 20
         && data.timeZone is string && data.timeZone.size() <= 60
         && data.schemaVersion is int && data.schemaVersion >= 1
-        && isTimestampOrAbsent(data, 'createdAt')
+        && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
 
@@ -57,19 +59,22 @@ service cloud.firestore {
           'subject', 'title', 'scheduledAt', 'startMinutes', 'endMinutes',
           'color', 'detail', 'status', 'createdAt', 'updatedAt'
         ])
-        && data.subject is string && data.subject.size() <= 60
+        && data.subject is string && data.subject.size() >= 1
+        && data.subject.size() <= 60
         && data.title is string && data.title.size() >= 3
         && data.title.size() <= 200
         && data.scheduledAt is int
+        && data.scheduledAt >= 1577836800000
+        && data.scheduledAt <= 4102444800000
         && data.startMinutes is int
-        && data.startMinutes >= 0 && data.startMinutes <= 1440
+        && data.startMinutes >= 0 && data.startMinutes < 1440
         && data.endMinutes is int
-        && data.endMinutes >= 0 && data.endMinutes <= 1440
-        && data.color is int
+        && data.endMinutes > data.startMinutes && data.endMinutes <= 1440
+        && data.color is int && data.color >= 0 && data.color <= 4294967295
         && (!('detail' in data) || data.detail == null ||
           (data.detail is string && data.detail.size() <= 500))
         && data.status in ['planned', 'completed', 'skipped']
-        && isTimestampOrAbsent(data, 'createdAt')
+        && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
 
@@ -82,10 +87,13 @@ service cloud.firestore {
         && data.name.size() <= 200
         && data.type in ['TYT', 'AYT']
         && data.takenAt is int
+        && data.takenAt >= 1577836800000
+        && data.takenAt <= 4102444800000
         && data.subjects is list
-        && data.subjects.size() >= 1 && data.subjects.size() <= 25
-        && data.totalNet is number && data.totalNet >= 0 && data.totalNet <= 500
-        && isTimestampOrAbsent(data, 'createdAt');
+        && data.subjects.size() >= 1 && data.subjects.size() <= 10
+        && data.totalNet is number
+        && data.totalNet >= -100 && data.totalNet <= 200
+        && data.createdAt is timestamp;
     }
 
     function validFocusSession() {
@@ -93,10 +101,17 @@ service cloud.firestore {
       return data.keys().hasOnly([
           'subject', 'startedAt', 'endedAt', 'durationMinutes', 'createdAt'
         ])
-        && data.subject is string && data.subject.size() <= 200
+        && data.subject is string && data.subject.size() >= 1
+        && data.subject.size() <= 100
         && data.startedAt is int && data.endedAt is int
-        && data.durationMinutes is int && data.durationMinutes >= 0
-        && isTimestampOrAbsent(data, 'createdAt');
+        && data.startedAt >= 1577836800000
+        && data.endedAt > data.startedAt
+        && data.endedAt - data.startedAt <= 10800000
+        && data.durationMinutes is int
+        && data.durationMinutes >= 1 && data.durationMinutes <= 180
+        && data.endedAt - data.startedAt >= data.durationMinutes * 60000 - 30000
+        && data.endedAt - data.startedAt <= data.durationMinutes * 60000 + 30000
+        && data.createdAt is timestamp;
     }
 
     function validDevice(installationId) {
@@ -114,27 +129,34 @@ service cloud.firestore {
         && data.fcmToken.size() >= 20
         && data.fcmToken.size() <= 4096
         && data.platform == 'android'
-        && data.timeZone is string && data.timeZone.size() <= 60
+        && data.timeZone is string && data.timeZone.size() >= 1
+        && data.timeZone.size() <= 60
         && data.dailyReminder is bool && data.taskReminder is bool
         && data.motivationReminder is bool && data.examReminder is bool
-        && isTimestampOrAbsent(data, 'createdAt')
+        && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
 
     match /users/{userId} {
       allow read: if owns(userId);
-      allow create, update: if owns(userId) && validUser();
+      allow create: if owns(userId) && validUser();
+      allow update: if owns(userId) && validUser()
+        && request.resource.data.createdAt == resource.data.createdAt;
       // Full account deletion is recursive and is performed by deleteAccount.
       allow delete: if false;
 
       match /tasks/{taskId} {
         allow read, delete: if owns(userId);
-        allow create, update: if owns(userId) && validTask();
+        allow create: if owns(userId) && validTask();
+        allow update: if owns(userId) && validTask()
+          && request.resource.data.createdAt == resource.data.createdAt;
       }
 
       match /exams/{examId} {
         allow read, delete: if owns(userId);
-        allow create, update: if owns(userId) && validExam();
+        allow create: if owns(userId) && validExam();
+        allow update: if owns(userId) && validExam()
+          && request.resource.data.createdAt == resource.data.createdAt;
       }
 
       match /focusSessions/{sessionId} {
@@ -160,7 +182,9 @@ service cloud.firestore {
 
       match /devices/{installationId} {
         allow read, delete: if owns(userId);
-        allow create, update: if owns(userId) && validDevice(installationId);
+        allow create: if owns(userId) && validDevice(installationId);
+        allow update: if owns(userId) && validDevice(installationId)
+          && request.resource.data.createdAt == resource.data.createdAt;
       }
     }
 

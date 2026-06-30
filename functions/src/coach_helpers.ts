@@ -58,3 +58,50 @@ export function verifiedProvider(token: Record<string, unknown>): boolean {
 export function boundedText(value: unknown, maximum = 120): string {
   return typeof value === "string" ? value.slice(0, maximum) : "";
 }
+
+export function zonedDayRange(
+  now: Date,
+  timeZone: string,
+): {start: number; end: number} {
+  const start = zonedDateStart(now, safeTimeZone(timeZone));
+  const end = zonedDateStart(
+    new Date(start + 36 * 60 * 60 * 1000),
+    safeTimeZone(timeZone),
+  );
+  return {start, end};
+}
+
+function zonedDateStart(now: Date, timeZone: string): number {
+  const key = dateKey(now, timeZone);
+  const [year, month, day] = key.split("-").map(Number);
+  const utcGuess = Date.UTC(
+    year ?? now.getUTCFullYear(),
+    (month ?? 1) - 1,
+    day ?? 1,
+  );
+  const firstCandidate = utcGuess - zoneOffsetMilliseconds(utcGuess, timeZone);
+  return utcGuess - zoneOffsetMilliseconds(firstCandidate, timeZone);
+}
+
+function zoneOffsetMilliseconds(epoch: number, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(epoch));
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const representedAsUtc = Date.UTC(
+    Number(values.year),
+    Number(values.month) - 1,
+    Number(values.day),
+    Number(values.hour),
+    Number(values.minute),
+    Number(values.second),
+  );
+  return representedAsUtc - epoch;
+}

@@ -93,7 +93,7 @@ class AuthSession extends ChangeNotifier {
   });
 
   Future<void> signOut() => _run(() async {
-    await app?.deactivateNotifications();
+    await _deactivateNotificationsBestEffort();
     app?.dispose();
     app = null;
     await auth.signOut();
@@ -118,7 +118,7 @@ class AuthSession extends ChangeNotifier {
       final gateway = accountGateway;
       if (gateway == null) throw StateError('Hesap servisi hazır değil.');
       await auth.reauthenticateForDeletion(password: password);
-      await app?.deactivateNotifications();
+      await _deactivateNotificationsBestEffort();
       await gateway.deleteAccount();
       app?.dispose();
       app = null;
@@ -168,7 +168,12 @@ class AuthSession extends ChangeNotifier {
       notificationGateway: notificationGateway,
       coachGateway: coachGateway,
     );
-    await nextApp.whenReady;
+    try {
+      await nextApp.whenReady;
+    } on Object {
+      nextApp.dispose();
+      rethrow;
+    }
     if (generation != _routeGeneration) {
       nextApp.dispose();
       return;
@@ -177,6 +182,15 @@ class AuthSession extends ChangeNotifier {
     app = nextApp;
     stage = AuthStage.ready;
     notifyListeners();
+  }
+
+  Future<void> _deactivateNotificationsBestEffort() async {
+    try {
+      await app?.deactivateNotifications();
+    } on Object {
+      // Signing out and account deletion must not be blocked by a stale local
+      // notification or a transient device-token cleanup failure.
+    }
   }
 
   Future<void> _run(

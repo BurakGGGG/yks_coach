@@ -12,7 +12,9 @@ Uygulama sırası: proje güvenliği → gerçek veri modeli → çekirdek özel
 - Aşama 5'te hesap silme, Crashlytics, API anahtarı kısıtları, delete protection, Android/web App Check sağlayıcıları ve callable enforcement tamamlandı.
 - Firestore App Check enforcement, yeni web istemcisi deploy edilip iki platformda metrik doğrulaması yapılana kadar gözlem modunda tutuluyor.
 - Gizlilik politikası için teknik veri envanteri hazır; yayın öncesi geliştirici/veri sorumlusu adı ve destek e-postası gerekiyor.
-- Aşama 6 başladı: uygulama kimliği sabit, sürüm `1.0.0+2` ve release debug imzasından ayrıldı. Upload keystore, Play App Signing SHA değerleri ve mağaza varlıkları kullanıcı hesabında tamamlanacak.
+- Yayın dışı sağlamlaştırma tamamlandı: veri kuralları sıkılaştırıldı, başarısız yazma akışları güvenli hale getirildi, DST gün sınırları düzeltildi ve geçici backend kayıtları için TTL etkinleştirildi.
+- Saatlik bildirim işi güncel Firestore istemcisiyle canlıda başarıyla doğrulandı; tüm Functions aynı çalışma zamanı bağımlılıklarına geçirildi.
+- Aşama 6 kullanıcı isteğiyle beklemede: uygulama kimliği sabit, sürüm `1.0.0+2` ve release debug imzasından ayrıldı. Upload keystore, Play App Signing SHA değerleri ve mağaza varlıkları daha sonra tamamlanacak.
 - Kullanıcı onayı olmadan APK/AAB üretilmeyecek ve web uygulaması başlatılmayacak.
 
 ## Uygulama Aşamaları

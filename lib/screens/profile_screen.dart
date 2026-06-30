@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../state/app_controller.dart';
 import '../state/auth_session.dart';
@@ -14,6 +15,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _initialized = false;
+  bool _saving = false;
   late String _name;
   late String _grade;
   late String _field;
@@ -130,6 +132,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context,
         auth.errorMessage ?? 'Hesap ve veriler silinemedi. Tekrar dene.',
       );
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate() || _saving) return;
+    setState(() => _saving = true);
+    try {
+      await AppScope.of(context).profile.updateProfile(
+        name: _name.trim(),
+        grade: _grade,
+        studyField: _field,
+        university: _university.trim(),
+        department: _department.trim(),
+        rank: int.parse(_rank),
+      );
+      if (mounted) AppSnack.show(context, 'Profil bilgileri güncellendi');
+    } on Object {
+      if (mounted) {
+        AppSnack.show(
+          context,
+          'Profil bilgileri kaydedilemedi. Bağlantını kontrol et.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -275,13 +302,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       TextFormField(
                         initialValue: _rank,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         decoration: const InputDecoration(
                           labelText: 'Hedef sıralama',
                           prefixIcon: Icon(Icons.emoji_events_outlined),
                         ),
-                        validator: (value) => int.tryParse(value ?? '') == null
-                            ? 'Geçerli bir sayı gir'
-                            : null,
+                        validator: (value) {
+                          final rank = int.tryParse(value ?? '');
+                          return rank == null || rank < 1
+                              ? 'Geçerli bir sıralama gir'
+                              : null;
+                        },
                         onChanged: (value) => _rank = value,
                       ),
                     ],
@@ -289,20 +322,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 20),
                 FilledButton.icon(
-                  onPressed: () {
-                    if (!_formKey.currentState!.validate()) return;
-                    profileController.updateProfile(
-                      name: _name.trim(),
-                      grade: _grade,
-                      studyField: _field,
-                      university: _university.trim(),
-                      department: _department.trim(),
-                      rank: int.parse(_rank),
-                    );
-                    AppSnack.show(context, 'Profil bilgileri güncellendi');
-                  },
-                  icon: const Icon(Icons.check),
-                  label: const Text('Değişiklikleri kaydet'),
+                  onPressed: _saving ? null : _saveProfile,
+                  icon: _saving
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.check),
+                  label: Text(
+                    _saving ? 'Kaydediliyor…' : 'Değişiklikleri kaydet',
+                  ),
                 ),
                 if (auth != null) ...[
                   const SizedBox(height: 24),

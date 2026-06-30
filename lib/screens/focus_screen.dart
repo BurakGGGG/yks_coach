@@ -63,6 +63,17 @@ class FocusScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (focus.errorMessage != null) ...[
+            const SizedBox(height: 8),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                focus.errorMessage!,
+                style: TextStyle(color: scheme.error),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           SegmentedButton<String>(
             segments: const [

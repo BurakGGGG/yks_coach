@@ -3,14 +3,14 @@ import {
   HarmBlockThreshold,
   HarmCategory,
 } from "@google/genai";
-import {initializeApp} from "firebase-admin/app";
-import {getAuth} from "firebase-admin/auth";
 import {
   FieldValue,
+  Firestore,
   QueryDocumentSnapshot,
   Timestamp,
-  getFirestore,
-} from "firebase-admin/firestore";
+} from "@google-cloud/firestore";
+import {initializeApp} from "firebase-admin/app";
+import {getAuth} from "firebase-admin/auth";
 import {getMessaging} from "firebase-admin/messaging";
 import {logger} from "firebase-functions";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
@@ -23,6 +23,7 @@ import {
   parseAskCoachInput,
   safeTimeZone,
   verifiedProvider,
+  zonedDayRange,
 } from "./coach_helpers.js";
 import {hasRecentAuthentication} from "./account_helpers.js";
 import {
@@ -31,9 +32,9 @@ import {
   motivationCopy,
 } from "./notification_helpers.js";
 
-initializeApp();
-const db = getFirestore();
 const project = process.env.GCLOUD_PROJECT ?? "yks-coach-d8b65";
+initializeApp({projectId: project});
+const db = new Firestore({projectId: project});
 const model = process.env.GEMINI_MODEL ?? "gemini-3.5-flash";
 const genAI = new GoogleGenAI({
   enterprise: true,
@@ -55,6 +56,9 @@ Sen Zihin Rehberi uygulamasındaki Türkçe YKS çalışma koçusun.
 
 const runtimeServiceAccount =
   "yks-coach-functions@yks-coach-d8b65.iam.gserviceaccount.com";
+const dayMilliseconds = 24 * 60 * 60 * 1000;
+const quotaRetentionDays = 90;
+const deliveryRetentionDays = 45;
 
 const callableOptions = {
   region: "europe-west1" as const,
@@ -252,7 +256,7 @@ export const deleteAccount = onCall(
 
 export const sendScheduledMotivations = onSchedule(
   {
-    schedule: "5,20,35,50 * * * *",
+    schedule: "5 * * * *",
     timeZone: "UTC",
     region: "europe-west1",
     timeoutSeconds: 180,
@@ -425,6 +429,9 @@ async function reserveMotivation(
         localDate: candidate.dayKey,
         installationId: candidate.installationId,
         leaseUntil: Timestamp.fromMillis(now.getTime() + 10 * 60 * 1000),
+        expireAt: Timestamp.fromMillis(
+          now.getTime() + deliveryRetentionDays * dayMilliseconds,
+        ),
         updatedAt: FieldValue.serverTimestamp(),
         ...(snapshot.exists ? {} : {createdAt: FieldValue.serverTimestamp()}),
       },
@@ -457,6 +464,9 @@ async function reserveQuota(
       {
         date: todayKey,
         coachMessages: count + 1,
+        expireAt: Timestamp.fromMillis(
+          Date.now() + quotaRetentionDays * dayMilliseconds,
+        ),
         updatedAt: FieldValue.serverTimestamp(),
         ...(snapshot.exists ? {} : {createdAt: FieldValue.serverTimestamp()}),
       },
@@ -493,14 +503,13 @@ async function buildContext(
   timeZone: string,
 ): Promise<string> {
   const now = new Date();
-  const startOfToday = zonedDateStart(now, timeZone);
-  const endOfToday = startOfToday + 24 * 60 * 60 * 1000;
+  const today = zonedDayRange(now, timeZone);
   const fourteenDaysAgo = now.getTime() - 14 * 24 * 60 * 60 * 1000;
   const [tasks, exams, focus] = await Promise.all([
     userRef
       .collection("tasks")
-      .where("scheduledAt", ">=", startOfToday)
-      .where("scheduledAt", "<", endOfToday)
+      .where("scheduledAt", ">=", today.start)
+      .where("scheduledAt", "<", today.end)
       .limit(30)
       .get(),
     userRef.collection("exams").orderBy("takenAt", "desc").limit(10).get(),
@@ -631,42 +640,4 @@ function stringArray(value: unknown, maxItems: number, maxLength: number): strin
         .slice(0, maxItems)
         .map((item) => item.slice(0, maxLength))
     : [];
-}
-
-// Converts the local calendar day to the epoch used by the Flutter client.
-// The app stores date-only values as local-midnight milliseconds. This helper
-// derives the same day without trusting a client-supplied timestamp.
-function zonedDateStart(now: Date, timeZone: string): number {
-  const key = dateKey(now, timeZone);
-  const [year, month, day] = key.split("-").map(Number);
-  const utcGuess = Date.UTC(
-    year ?? now.getUTCFullYear(),
-    (month ?? 1) - 1,
-    day ?? 1,
-  );
-  const firstCandidate = utcGuess - zoneOffsetMilliseconds(utcGuess, timeZone);
-  return utcGuess - zoneOffsetMilliseconds(firstCandidate, timeZone);
-}
-
-function zoneOffsetMilliseconds(epoch: number, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(new Date(epoch));
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  const representedAsUtc = Date.UTC(
-    Number(values.year),
-    Number(values.month) - 1,
-    Number(values.day),
-    Number(values.hour),
-    Number(values.minute),
-    Number(values.second),
-  );
-  return representedAsUtc - epoch;
 }

@@ -399,12 +399,18 @@ Future<void> _showTaskDialog(
       detail: detail.text.trim().isEmpty ? null : detail.text.trim(),
       status: existing?.status ?? TaskStatus.planned,
     );
-    await schedule.addTask(task);
-    if (context.mounted) {
-      AppSnack.show(
-        context,
-        existing == null ? 'Görev programa eklendi' : 'Görev güncellendi',
-      );
+    try {
+      await schedule.addTask(task);
+      if (context.mounted) {
+        AppSnack.show(
+          context,
+          existing == null ? 'Görev programa eklendi' : 'Görev güncellendi',
+        );
+      }
+    } on Object {
+      if (context.mounted) {
+        AppSnack.show(context, 'Görev kaydedilemedi. Bağlantını kontrol et.');
+      }
     }
   }
   // Let the dialog's dismiss animation finish before disposing the controllers,
@@ -417,6 +423,19 @@ Future<void> _showTaskDialog(
 class _TaskCard extends StatelessWidget {
   const _TaskCard({required this.task});
   final StudyTask task;
+
+  Future<void> _toggle(
+    BuildContext context,
+    ScheduleController schedule,
+  ) async {
+    try {
+      await schedule.toggleTask(task);
+    } on Object {
+      if (context.mounted) {
+        AppSnack.show(context, 'Görev durumu güncellenemedi.');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -433,7 +452,7 @@ class _TaskCard extends StatelessWidget {
           children: [
             Checkbox(
               value: task.completed,
-              onChanged: (_) => schedule.toggleTask(task),
+              onChanged: (_) => _toggle(context, schedule),
             ),
             Expanded(
               child: Column(
@@ -510,8 +529,17 @@ class _TaskMenu extends StatelessWidget {
           case 'edit':
             await _showTaskDialog(context, schedule, existing: task);
           case 'delete':
-            await schedule.deleteTask(task.id);
-            if (context.mounted) AppSnack.show(context, 'Görev silindi');
+            try {
+              await schedule.deleteTask(task.id);
+              if (context.mounted) AppSnack.show(context, 'Görev silindi');
+            } on Object {
+              if (context.mounted) {
+                AppSnack.show(
+                  context,
+                  'Görev silinemedi. Bağlantını kontrol et.',
+                );
+              }
+            }
         }
       },
       itemBuilder: (context) => const [

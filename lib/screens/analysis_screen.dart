@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/practice_exam.dart';
 import '../state/analytics.dart';
@@ -17,6 +18,19 @@ const _examSubjects = {
     'Tarih',
     'Coğrafya',
   ],
+};
+
+const _subjectQuestionLimits = {
+  'Türkçe': 40,
+  'Sosyal': 20,
+  'Matematik': 40,
+  'Fen': 20,
+  'Edebiyat': 24,
+  'Fizik': 14,
+  'Kimya': 13,
+  'Biyoloji': 13,
+  'Tarih': 10,
+  'Coğrafya': 6,
 };
 
 const _subjectColors = <String, Color>{
@@ -274,8 +288,17 @@ class AnalysisScreen extends StatelessWidget {
       ),
     );
     if (exam != null) {
-      await controller.addExam(exam);
-      if (context.mounted) AppSnack.show(context, 'Deneme analize eklendi');
+      try {
+        await controller.addExam(exam);
+        if (context.mounted) AppSnack.show(context, 'Deneme analize eklendi');
+      } on Object {
+        if (context.mounted) {
+          AppSnack.show(
+            context,
+            'Deneme kaydedilemedi. Bağlantını kontrol et.',
+          );
+        }
+      }
     }
   }
 
@@ -335,8 +358,14 @@ class AnalysisScreen extends StatelessWidget {
       ),
     );
     if (remove == true) {
-      await controller.removeExam(exam.id);
-      if (context.mounted) AppSnack.show(context, 'Deneme silindi');
+      try {
+        await controller.removeExam(exam.id);
+        if (context.mounted) AppSnack.show(context, 'Deneme silindi');
+      } on Object {
+        if (context.mounted) {
+          AppSnack.show(context, 'Deneme silinemedi. Bağlantını kontrol et.');
+        }
+      }
     }
   }
 
@@ -495,6 +524,7 @@ class _ExamFormState extends State<_ExamForm> {
 
   Widget _subjectRow(String subject) {
     final triple = _fields[subject]!;
+    final questionLimit = _subjectQuestionLimits[subject]!;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -524,6 +554,17 @@ class _ExamFormState extends State<_ExamForm> {
                   controller: controller,
                   textAlign: TextAlign.center,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(3),
+                  ],
+                  validator: (_) {
+                    final total = triple.fold<int>(
+                      0,
+                      (sum, field) => sum + _parse(field),
+                    );
+                    return total > questionLimit ? '≤$questionLimit' : null;
+                  },
                   decoration: const InputDecoration(
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(vertical: 8),
@@ -557,7 +598,7 @@ class _NetChart extends StatelessWidget {
         ),
       );
     }
-    final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final maxValue = values.fold<double>(0, (a, b) => a > b ? a : b);
     return SizedBox(
       height: 140,
       child: Row(

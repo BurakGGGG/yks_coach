@@ -19,14 +19,14 @@ void main() {
       expect(result.questionCount, 40);
     });
 
-    test('net negatif olmaz', () {
+    test('yanlış sayısı doğruyu aşınca net negatif olabilir', () {
       const result = ExamSubjectResult(
         subject: 'Fizik',
         correct: 1,
         wrong: 8,
         blank: 0,
       );
-      expect(result.net, 0);
+      expect(result.net, -1);
     });
 
     test('toplam net ders netlerinin toplamıdır', () {

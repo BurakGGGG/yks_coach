@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yks_coach/data/memory_store.dart';
+import 'package:yks_coach/models/focus_session.dart';
 import 'package:yks_coach/state/focus_controller.dart';
 
 void main() {
@@ -8,6 +9,7 @@ void main() {
     final focus = FocusController(
       InMemoryFocusRepository(),
       focusMinutes: 25,
+      subject: 'Matematik',
       now: () => now,
     );
     addTearDown(focus.dispose);
@@ -67,4 +69,39 @@ void main() {
 
     expect(focus.sessions, isEmpty);
   });
+
+  test('ders seçilmeden odak oturumu başlamaz', () {
+    final focus = FocusController(InMemoryFocusRepository(), focusMinutes: 25);
+    addTearDown(focus.dispose);
+
+    focus.start();
+
+    expect(focus.running, isFalse);
+    expect(focus.errorMessage, contains('ders seç'));
+  });
+
+  test('tamamlanan oturum yazılamazsa güvenli hata gösterilir', () async {
+    var now = DateTime(2026, 6, 29, 9);
+    final focus = FocusController(
+      _FailingFocusRepository(),
+      focusMinutes: 25,
+      subject: 'Matematik',
+      now: () => now,
+    );
+    addTearDown(focus.dispose);
+
+    focus.start();
+    now = now.add(const Duration(minutes: 25));
+    focus.syncWithClock();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(focus.errorMessage, contains('kaydedilemedi'));
+  });
+}
+
+class _FailingFocusRepository extends InMemoryFocusRepository {
+  @override
+  Future<void> add(FocusSession session) async {
+    throw StateError('write failed');
+  }
 }

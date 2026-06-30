@@ -11,6 +11,7 @@ const {
   getDoc,
   serverTimestamp,
   setDoc,
+  Timestamp,
 } = require('firebase/firestore');
 
 describe('Firestore security rules', () => {
@@ -52,6 +53,168 @@ describe('Firestore security rules', () => {
       updatedAt: serverTimestamp(),
     };
   }
+
+  function validProfile() {
+    return {
+      userName: 'Ada Yılmaz',
+      grade: '12. Sınıf',
+      studyField: 'Sayısal',
+      targetUniversity: 'Hedef Üniversite',
+      targetDepartment: 'Bilgisayar Mühendisliği',
+      targetRank: 5000,
+      dailyQuestionGoal: 80,
+      dailyStudyMinutes: 180,
+      prioritySubjects: ['Matematik', 'Fizik'],
+      dailyReminder: false,
+      taskReminder: true,
+      motivationReminder: true,
+      examReminder: false,
+      reminderMinutes: 1140,
+      focusMinutes: 25,
+      themeMode: 'light',
+      onboardingCompleted: true,
+      locale: 'tr_TR',
+      timeZone: 'Europe/Istanbul',
+      schemaVersion: 1,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+  }
+
+  function validTask() {
+    return {
+      subject: 'Matematik',
+      title: 'Türev tekrarı',
+      scheduledAt: Date.UTC(2026, 5, 30),
+      startMinutes: 540,
+      endMinutes: 600,
+      color: 0xff2563eb,
+      detail: null,
+      status: 'planned',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+  }
+
+  function validExam() {
+    return {
+      name: 'TYT Denemesi',
+      type: 'TYT',
+      takenAt: Date.UTC(2026, 5, 29),
+      subjects: [
+        {subject: 'Matematik', correct: 1, wrong: 8, blank: 31},
+      ],
+      totalNet: -1,
+      createdAt: serverTimestamp(),
+    };
+  }
+
+  function validFocusSession() {
+    const startedAt = Date.UTC(2026, 5, 30, 8);
+    return {
+      subject: 'Matematik',
+      startedAt,
+      endedAt: startedAt + 25 * 60 * 1000,
+      durationMinutes: 25,
+      createdAt: serverTimestamp(),
+    };
+  }
+
+  it('verified owner can create valid profile and study data', async () => {
+    const db = context().firestore();
+
+    await assertSucceeds(setDoc(doc(db, 'users/alice'), validProfile()));
+    await assertSucceeds(
+      setDoc(doc(db, 'users/alice/tasks/task-1'), validTask()),
+    );
+    await assertSucceeds(
+      setDoc(doc(db, 'users/alice/exams/exam-1'), validExam()),
+    );
+    await assertSucceeds(
+      setDoc(
+        doc(db, 'users/alice/focusSessions/focus-1'),
+        validFocusSession(),
+      ),
+    );
+  });
+
+  it('rejects unsupported providers and access to another user profile', async () => {
+    await assertFails(
+      setDoc(
+        doc(context('alice', true, 'github.com').firestore(), 'users/alice'),
+        validProfile(),
+      ),
+    );
+    await assertFails(
+      setDoc(
+        doc(context('mallory').firestore(), 'users/alice'),
+        validProfile(),
+      ),
+    );
+  });
+
+  it('rejects malformed profile enums and priority subjects', async () => {
+    const ref = doc(context().firestore(), 'users/alice');
+
+    await assertFails(
+      setDoc(ref, {
+        ...validProfile(),
+        grade: 'Yönetici',
+        prioritySubjects: ['Matematik', 'Bilinmeyen'],
+      }),
+    );
+  });
+
+  it('rejects inverted tasks and changing server creation time', async () => {
+    const ref = doc(context().firestore(), 'users/alice/tasks/task-1');
+    await assertFails(
+      setDoc(ref, {...validTask(), startMinutes: 600, endMinutes: 540}),
+    );
+
+    await assertSucceeds(
+      setDoc(ref, {
+        ...validTask(),
+        createdAt: Timestamp.fromMillis(1000),
+      }),
+    );
+    await assertFails(
+      setDoc(ref, {
+        ...validTask(),
+        createdAt: Timestamp.fromMillis(2000),
+      }),
+    );
+  });
+
+  it('accepts negative net but rejects oversized exam payloads', async () => {
+    const db = context().firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'users/alice/exams/negative-net'), validExam()),
+    );
+    await assertFails(
+      setDoc(doc(db, 'users/alice/exams/oversized'), {
+        ...validExam(),
+        subjects: Array.from({length: 11}, (_, index) => ({
+          subject: `Ders ${index}`,
+          correct: 1,
+          wrong: 0,
+          blank: 0,
+        })),
+      }),
+    );
+  });
+
+  it('rejects inconsistent or zero-length focus sessions', async () => {
+    const ref = doc(
+      context().firestore(),
+      'users/alice/focusSessions/focus-1',
+    );
+    const valid = validFocusSession();
+
+    await assertFails(setDoc(ref, {...valid, durationMinutes: 5}));
+    await assertFails(
+      setDoc(ref, {...valid, endedAt: valid.startedAt, durationMinutes: 0}),
+    );
+  });
 
   it('verified owner can register and read an Android installation', async () => {
     const id = '0123456789abcdef0123456789abcdef';

@@ -18,10 +18,7 @@ class ExamSubjectResult {
 
   int get questionCount => correct + wrong + blank;
 
-  double get net {
-    final value = correct - wrong / 4;
-    return value < 0 ? 0 : value;
-  }
+  double get net => correct - wrong / 4;
 
   Map<String, Object?> toMap() => {
     'subject': subject,

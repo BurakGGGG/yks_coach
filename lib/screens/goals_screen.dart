@@ -12,6 +12,7 @@ class GoalsScreen extends StatefulWidget {
 
 class _GoalsScreenState extends State<GoalsScreen> {
   bool _initialized = false;
+  bool _saving = false;
   late double _questions;
   late double _minutes;
   final Set<String> _prioritySubjects = {};
@@ -25,6 +26,28 @@ class _GoalsScreenState extends State<GoalsScreen> {
     _minutes = profile.dailyStudyMinutes.toDouble();
     _prioritySubjects.addAll(profile.prioritySubjects);
     _initialized = true;
+  }
+
+  Future<void> _saveGoals() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await AppScope.of(context).profile.updateGoals(
+        questions: _questions.round(),
+        studyMinutes: _minutes.round(),
+        subjects: _prioritySubjects.toList(),
+      );
+      if (mounted) AppSnack.show(context, 'Günlük hedeflerin güncellendi');
+    } on Object {
+      if (mounted) {
+        AppSnack.show(
+          context,
+          'Hedeflerin kaydedilemedi. Bağlantını kontrol et.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -170,16 +193,14 @@ class _GoalsScreenState extends State<GoalsScreen> {
               ),
               const SizedBox(height: 24),
               FilledButton.icon(
-                onPressed: () {
-                  profileController.updateGoals(
-                    questions: _questions.round(),
-                    studyMinutes: _minutes.round(),
-                    subjects: _prioritySubjects.toList(),
-                  );
-                  AppSnack.show(context, 'Günlük hedeflerin güncellendi');
-                },
-                icon: const Icon(Icons.check),
-                label: const Text('Hedefleri kaydet'),
+                onPressed: _saving ? null : _saveGoals,
+                icon: _saving
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check),
+                label: Text(_saving ? 'Kaydediliyor…' : 'Hedefleri kaydet'),
               ),
             ],
           ),

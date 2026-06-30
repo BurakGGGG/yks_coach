@@ -11,7 +11,10 @@ import '../models/user_profile.dart';
 class ProfileController extends ChangeNotifier {
   ProfileController(this._repository, {String? suggestedName})
     : _suggestedName = suggestedName ?? '' {
-    _subscription = _repository.watch().listen(_onProfile);
+    _subscription = _repository.watch().listen(
+      _onProfile,
+      onError: _onProfileError,
+    );
   }
 
   final ProfileRepository _repository;
@@ -40,10 +43,23 @@ class ProfileController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _onProfileError(Object error, StackTrace stackTrace) {
+    if (!_firstLoad.isCompleted) _firstLoad.completeError(error, stackTrace);
+  }
+
   Future<void> _save(UserProfile next, {bool isNew = false}) async {
+    final previous = _profile;
     _profile = next;
     notifyListeners();
-    await _repository.save(next, isNew: isNew);
+    try {
+      await _repository.save(next, isNew: isNew);
+    } on Object {
+      if (identical(_profile, next)) {
+        _profile = previous;
+        notifyListeners();
+      }
+      rethrow;
+    }
   }
 
   /// Persists the full profile collected during onboarding.

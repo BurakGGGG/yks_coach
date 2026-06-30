@@ -37,12 +37,14 @@ class FocusController extends ChangeNotifier {
   int _remaining = 0;
   Timer? _ticker;
   List<FocusSession> _sessions = const [];
+  String? _errorMessage;
 
   int get focusMinutes => _focusMinutes;
   String get subject => _subject;
   String get mode => _mode;
   bool get running => _running;
   List<FocusSession> get sessions => _sessions;
+  String? get errorMessage => _errorMessage;
 
   int get _modeMinutes => _breakMinutes[_mode] ?? _focusMinutes;
   int get _modeSeconds => _modeMinutes * 60;
@@ -75,6 +77,7 @@ class FocusController extends ChangeNotifier {
 
   void selectSubject(String subject) {
     _subject = subject;
+    _errorMessage = null;
     notifyListeners();
   }
 
@@ -83,6 +86,7 @@ class FocusController extends ChangeNotifier {
     _running = false;
     _endAt = null;
     _remaining = _modeSeconds;
+    _errorMessage = null;
     _stopTicker();
     notifyListeners();
   }
@@ -111,6 +115,12 @@ class FocusController extends ChangeNotifier {
 
   void start() {
     if (_running) return;
+    if (_mode == 'focus' && _subject.trim().isEmpty) {
+      _errorMessage = 'Odak oturumunu başlatmadan önce bir ders seç.';
+      notifyListeners();
+      return;
+    }
+    _errorMessage = null;
     if (_remaining <= 0) _remaining = _modeSeconds;
     _running = true;
     _endAt = _now().add(Duration(seconds: _remaining));
@@ -164,12 +174,22 @@ class FocusController extends ChangeNotifier {
       final ended = _now();
       final started = ended.subtract(Duration(minutes: _focusMinutes));
       unawaited(
-        _repository.add(
+        _saveCompletedSession(
           FocusSession(subject: _subject, startedAt: started, endedAt: ended),
         ),
       );
     }
     notifyListeners();
+  }
+
+  Future<void> _saveCompletedSession(FocusSession session) async {
+    try {
+      await _repository.add(session);
+    } on Object {
+      _errorMessage =
+          'Tamamlanan odak oturumu kaydedilemedi. Bağlantını kontrol et.';
+      notifyListeners();
+    }
   }
 
   void _startTicker() {

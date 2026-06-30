@@ -48,20 +48,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _saving) return;
     setState(() => _saving = true);
-    final app = AppScope.of(context);
-    await app.completeOnboarding(
-      const UserProfile().copyWith(
-        userName: _name.trim(),
-        grade: _grade,
-        studyField: _field,
-        targetUniversity: _university.trim(),
-        targetDepartment: _department.trim(),
-        targetRank: int.parse(_rank),
-        dailyQuestionGoal: _questionGoal.round(),
-        dailyStudyMinutes: _studyMinutes.round(),
-      ),
-    );
-    // Routing reacts to onboardingCompleted; nothing else to do here.
+    try {
+      final app = AppScope.of(context);
+      await app.completeOnboarding(
+        const UserProfile().copyWith(
+          userName: _name.trim(),
+          grade: _grade,
+          studyField: _field,
+          targetUniversity: _university.trim(),
+          targetDepartment: _department.trim(),
+          targetRank: int.parse(_rank),
+          dailyQuestionGoal: _questionGoal.round(),
+          dailyStudyMinutes: _studyMinutes.round(),
+        ),
+      );
+      // Routing reacts to onboardingCompleted; nothing else to do here.
+    } on Object {
+      if (mounted) {
+        AppSnack.show(
+          context,
+          'Profil kurulumu kaydedilemedi. Bağlantını kontrol edip tekrar dene.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
