@@ -1,5 +1,19 @@
 import 'package:flutter/material.dart';
 
+abstract final class AppMotion {
+  static const quick = Duration(milliseconds: 140);
+  static const standard = Duration(milliseconds: 280);
+  static const emphasized = Duration(milliseconds: 420);
+
+  static const enterCurve = Curves.easeOutCubic;
+  static const exitCurve = Curves.easeInCubic;
+
+  static Duration duration(BuildContext context, Duration value) =>
+      MediaQuery.maybeOf(context)?.disableAnimations == true
+      ? Duration.zero
+      : value;
+}
+
 class SurfaceCard extends StatefulWidget {
   const SurfaceCard({
     required this.child,
@@ -24,25 +38,29 @@ class _SurfaceCardState extends State<SurfaceCard> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return AnimatedScale(
-      scale: _pressed ? .985 : 1,
-      duration: const Duration(milliseconds: 130),
-      curve: Curves.easeOut,
-      child: Material(
-        color: scheme.surfaceContainerLowest,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: widget.border
-              ? BorderSide(color: scheme.outlineVariant)
-              : BorderSide.none,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: widget.onTap,
-          onHighlightChanged: widget.onTap == null
-              ? null
-              : (value) => setState(() => _pressed = value),
-          child: Padding(padding: widget.padding, child: widget.child),
+      scale: _pressed && !reduceMotion ? .975 : 1,
+      duration: reduceMotion ? Duration.zero : AppMotion.quick,
+      curve: AppMotion.enterCurve,
+      child: RepaintBoundary(
+        child: Material(
+          color: scheme.surfaceContainerLowest,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: widget.border
+                ? BorderSide(color: scheme.outlineVariant)
+                : BorderSide.none,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: widget.onTap,
+            onHighlightChanged: widget.onTap == null
+                ? null
+                : (value) => setState(() => _pressed = value),
+            child: Padding(padding: widget.padding, child: widget.child),
+          ),
         ),
       ),
     );
@@ -107,7 +125,7 @@ class _AnimatedEntranceState extends State<AnimatedEntrance>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 420),
+      duration: AppMotion.emphasized,
     );
     final curve = CurvedAnimation(
       parent: _controller,
@@ -136,7 +154,13 @@ class _AnimatedEntranceState extends State<AnimatedEntrance>
     if (reduceMotion) return widget.child;
     return FadeTransition(
       opacity: _fade,
-      child: SlideTransition(position: _slide, child: widget.child),
+      child: SlideTransition(
+        position: _slide,
+        child: ScaleTransition(
+          scale: Tween(begin: .992, end: 1.0).animate(_fade),
+          child: widget.child,
+        ),
+      ),
     );
   }
 }
@@ -159,8 +183,8 @@ class AnimatedProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(end: value.clamp(0, 1)),
-      duration: const Duration(milliseconds: 650),
-      curve: Curves.easeOutCubic,
+      duration: AppMotion.duration(context, const Duration(milliseconds: 650)),
+      curve: AppMotion.enterCurve,
       builder: (context, animatedValue, _) => LinearProgressIndicator(
         value: animatedValue,
         minHeight: minHeight,
@@ -175,24 +199,39 @@ class AnimatedProgressBar extends StatelessWidget {
 class AppPageRoute<T> extends PageRouteBuilder<T> {
   AppPageRoute({required WidgetBuilder builder})
     : super(
-        transitionDuration: const Duration(milliseconds: 360),
-        reverseTransitionDuration: const Duration(milliseconds: 260),
+        transitionDuration: AppMotion.emphasized,
+        reverseTransitionDuration: AppMotion.standard,
         pageBuilder: (context, animation, secondaryAnimation) =>
             builder(context),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          if (MediaQuery.disableAnimationsOf(context)) return child;
           final curved = CurvedAnimation(
             parent: animation,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeInCubic,
+            curve: AppMotion.enterCurve,
+            reverseCurve: AppMotion.exitCurve,
           );
-          return FadeTransition(
-            opacity: curved,
-            child: SlideTransition(
-              position: Tween(
-                begin: const Offset(.045, 0),
-                end: Offset.zero,
-              ).animate(curved),
-              child: child,
+          final secondaryCurved = CurvedAnimation(
+            parent: secondaryAnimation,
+            curve: AppMotion.enterCurve,
+            reverseCurve: AppMotion.exitCurve,
+          );
+          return SlideTransition(
+            position: Tween(
+              begin: Offset.zero,
+              end: const Offset(-.025, 0),
+            ).animate(secondaryCurved),
+            child: FadeTransition(
+              opacity: Tween(begin: 0.92, end: 1.0).animate(curved),
+              child: SlideTransition(
+                position: Tween(
+                  begin: const Offset(.055, 0),
+                  end: Offset.zero,
+                ).animate(curved),
+                child: ScaleTransition(
+                  scale: Tween(begin: .985, end: 1.0).animate(curved),
+                  child: RepaintBoundary(child: child),
+                ),
+              ),
             ),
           );
         },

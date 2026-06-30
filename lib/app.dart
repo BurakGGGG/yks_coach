@@ -10,6 +10,7 @@ import 'state/app_controller.dart';
 import 'state/auth_session.dart';
 import 'theme/app_theme.dart';
 import 'widgets/app_shell.dart';
+import 'widgets/common.dart';
 
 class YksCoachRoot extends StatelessWidget {
   const YksCoachRoot({required this.session, super.key});
@@ -26,24 +27,31 @@ class YksCoachRoot extends StatelessWidget {
           animation: session.app ?? session,
           builder: (context, _) {
             final app = session.app;
+            final screen = switch (session.stage) {
+              AuthStage.authentication => const AuthScreen(),
+              AuthStage.verification => const EmailVerificationScreen(),
+              AuthStage.ready when app != null => AppScope(
+                notifier: app,
+                child: app.onboardingCompleted
+                    ? _initialScreen(session.initialScreen)
+                    : const OnboardingScreen(),
+              ),
+              AuthStage.failure => const AuthFailureScreen(),
+              _ => const AuthLoadingScreen(),
+            };
             return MaterialApp(
               title: 'Zihin Rehberi',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.light,
               darkTheme: AppTheme.dark,
               themeMode: app?.themeMode ?? ThemeMode.light,
-              home: switch (session.stage) {
-                AuthStage.authentication => const AuthScreen(),
-                AuthStage.verification => const EmailVerificationScreen(),
-                AuthStage.ready when app != null => AppScope(
-                  notifier: app,
-                  child: app.onboardingCompleted
-                      ? _initialScreen(session.initialScreen)
-                      : const OnboardingScreen(),
-                ),
-                AuthStage.failure => const AuthFailureScreen(),
-                _ => const AuthLoadingScreen(),
-              },
+              themeAnimationDuration: AppMotion.emphasized,
+              themeAnimationCurve: AppMotion.enterCurve,
+              home: _StageTransition(
+                stageKey:
+                    '${session.stage.name}-${app?.onboardingCompleted ?? false}',
+                child: screen,
+              ),
             );
           },
         ),
@@ -72,9 +80,47 @@ class YksCoachApp extends StatelessWidget {
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: controller.themeMode,
+          themeAnimationDuration: AppMotion.emphasized,
+          themeAnimationCurve: AppMotion.enterCurve,
           home: _initialScreen(initialScreen),
         ),
       ),
+    );
+  }
+}
+
+class _StageTransition extends StatelessWidget {
+  const _StageTransition({required this.stageKey, required this.child});
+
+  final String stageKey;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = AppMotion.duration(context, AppMotion.emphasized);
+    return AnimatedSwitcher(
+      duration: duration,
+      reverseDuration: AppMotion.duration(context, AppMotion.standard),
+      switchInCurve: AppMotion.enterCurve,
+      switchOutCurve: AppMotion.exitCurve,
+      layoutBuilder: (currentChild, previousChildren) => Stack(
+        fit: StackFit.expand,
+        children: [...previousChildren, ?currentChild],
+      ),
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween(
+            begin: const Offset(0, .018),
+            end: Offset.zero,
+          ).animate(animation),
+          child: ScaleTransition(
+            scale: Tween(begin: .992, end: 1.0).animate(animation),
+            child: child,
+          ),
+        ),
+      ),
+      child: KeyedSubtree(key: ValueKey(stageKey), child: child),
     );
   }
 }

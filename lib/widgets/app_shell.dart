@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../screens/analysis_screen.dart';
 import '../screens/assistant_screen.dart';
@@ -12,9 +13,14 @@ import '../state/auth_session.dart';
 import '../state/app_controller.dart';
 import 'common.dart';
 
-class AppShell extends StatelessWidget {
+class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
@@ -165,32 +171,7 @@ class AppShell extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 430),
           child: SizedBox.expand(
-            child: AnimatedSwitcher(
-              duration: MediaQuery.disableAnimationsOf(context)
-                  ? Duration.zero
-                  : const Duration(milliseconds: 360),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              layoutBuilder: (currentChild, previousChildren) => Stack(
-                alignment: Alignment.topCenter,
-                fit: StackFit.expand,
-                children: [...previousChildren, ?currentChild],
-              ),
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween(
-                    begin: const Offset(.025, 0),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: child,
-                ),
-              ),
-              child: KeyedSubtree(
-                key: ValueKey(app.tabIndex),
-                child: screens[app.tabIndex],
-              ),
-            ),
+            child: _AnimatedTabBody(index: app.tabIndex, children: screens),
           ),
         ),
       ),
@@ -206,7 +187,11 @@ class AppShell extends StatelessWidget {
             ),
             child: NavigationBar(
               selectedIndex: app.tabIndex,
-              onDestinationSelected: app.setTab,
+              onDestinationSelected: (index) {
+                if (index == app.tabIndex) return;
+                HapticFeedback.selectionClick();
+                app.setTab(index);
+              },
               destinations: const [
                 NavigationDestination(
                   icon: Icon(Icons.dashboard_outlined),
@@ -258,6 +243,119 @@ class AppShell extends StatelessWidget {
           'YKS hazırlık sürecini planlamak, odaklanmak ve gelişimi izlemek için tasarlandı.',
         ),
       ],
+    );
+  }
+}
+
+class _AnimatedTabBody extends StatefulWidget {
+  const _AnimatedTabBody({required this.index, required this.children});
+
+  final int index;
+  final List<Widget> children;
+
+  @override
+  State<_AnimatedTabBody> createState() => _AnimatedTabBodyState();
+}
+
+class _AnimatedTabBodyState extends State<_AnimatedTabBody>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late int _currentIndex;
+  int? _previousIndex;
+  int _direction = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.index;
+    _controller =
+        AnimationController(vsync: this, duration: AppMotion.standard, value: 1)
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed && _previousIndex != null) {
+              setState(() => _previousIndex = null);
+            }
+          });
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedTabBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.index == _currentIndex) return;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    _previousIndex = _currentIndex;
+    _direction = widget.index > _currentIndex ? 1 : -1;
+    _currentIndex = widget.index;
+    if (reduceMotion) {
+      _previousIndex = null;
+      _controller.value = 1;
+    } else {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final indices = <int>[
+      for (var index = 0; index < widget.children.length; index++)
+        if (index != _previousIndex && index != _currentIndex) index,
+      ?_previousIndex,
+      _currentIndex,
+    ];
+    return ClipRect(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          final enter = Curves.easeOutCubic.transform(_controller.value);
+          final exit = Curves.easeInCubic.transform(_controller.value);
+          return Stack(
+            fit: StackFit.expand,
+            children: indices.map((index) {
+              final isCurrent = index == _currentIndex;
+              final isPrevious = index == _previousIndex;
+              final visible = isCurrent || isPrevious;
+              final opacity = isCurrent
+                  ? (_previousIndex == null ? 1.0 : enter)
+                  : isPrevious
+                  ? 1 - exit
+                  : 0.0;
+              final offset = isCurrent
+                  ? Offset(
+                      _previousIndex == null
+                          ? 0
+                          : (1 - enter) * .045 * _direction,
+                      0,
+                    )
+                  : Offset(-exit * .022 * _direction, 0);
+              return Positioned.fill(
+                key: ValueKey('tab-$index'),
+                child: Offstage(
+                  offstage: !visible,
+                  child: TickerMode(
+                    enabled: isCurrent,
+                    child: IgnorePointer(
+                      ignoring: !isCurrent,
+                      child: Opacity(
+                        opacity: opacity.clamp(0, 1),
+                        child: FractionalTranslation(
+                          translation: offset,
+                          child: RepaintBoundary(child: widget.children[index]),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
     );
   }
 }

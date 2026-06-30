@@ -59,6 +59,82 @@ void main() {
     expect(find.byTooltip('Sonraki hafta'), findsOneWidget);
   });
 
+  testWidgets('sekme geçişi yönü izler ve ekran kaydırmasını korur', (
+    tester,
+  ) async {
+    final app = _buildApp(profile: _onboarded());
+    await _pumpApp(tester, app);
+
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -260),
+    );
+    await tester.pumpAndSettle();
+    final dashboardScroll = tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position
+        .pixels;
+    expect(dashboardScroll, greaterThan(0));
+
+    await tester.tap(find.text('Odak'));
+    await tester.pump();
+    final forwardSlide = tester.widget<FractionalTranslation>(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('tab-1')),
+            matching: find.byType(FractionalTranslation),
+          )
+          .first,
+    );
+    expect(forwardSlide.translation.dx, greaterThan(0));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Panel'));
+    await tester.pump();
+    final backwardSlide = tester.widget<FractionalTranslation>(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('tab-0')),
+            matching: find.byType(FractionalTranslation),
+          )
+          .first,
+    );
+    expect(backwardSlide.translation.dx, lessThan(0));
+    await tester.pumpAndSettle();
+
+    final restoredScroll = tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position
+        .pixels;
+    expect(restoredScroll, closeTo(dashboardScroll, .1));
+  });
+
+  testWidgets('azaltılmış hareket ayarında sekmeler anında değişir', (
+    tester,
+  ) async {
+    tester.binding.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(
+      tester.binding.platformDispatcher.clearAccessibilityFeaturesTestValue,
+    );
+    final app = _buildApp(profile: _onboarded());
+    await _pumpApp(tester, app);
+
+    await tester.tap(find.text('Odak'));
+    await tester.pump();
+
+    expect(find.text('ÇALIŞMA KONUSU'), findsOneWidget);
+    final slide = tester.widget<FractionalTranslation>(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('tab-1')),
+            matching: find.byType(FractionalTranslation),
+          )
+          .first,
+    );
+    expect(slide.translation, Offset.zero);
+  });
+
   testWidgets('tema anahtarı koyu temayı açar', (tester) async {
     final app = _buildApp(profile: _onboarded());
     await _pumpApp(tester, app);

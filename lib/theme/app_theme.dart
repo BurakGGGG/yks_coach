@@ -196,6 +196,11 @@ abstract final class AppTheme {
         elevation: 0,
         backgroundColor: scheme.surfaceContainerLowest,
         indicatorColor: scheme.primaryContainer,
+        indicatorShape: const StadiumBorder(),
+        surfaceTintColor: Colors.transparent,
+        overlayColor: WidgetStatePropertyAll(
+          scheme.primary.withValues(alpha: .07),
+        ),
         labelTextStyle: WidgetStatePropertyAll(textTheme.labelMedium),
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
