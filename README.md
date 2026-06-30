@@ -10,7 +10,10 @@ Stitch'teki **YKS Hazırlık Asistanı** tasarımlarından geliştirilen Flutter
 - TYT/AYT deneme analizi ve deneme ekleme
 - Düzenlenebilir öğrenci profili ve YKS hedefleri
 - Bildirim tercihleri ve saat seçimi
+- Yerel görev/günlük hatırlatmaları ve idempotent zamanlanmış FCM motivasyonu
 - Gerçek kullanıcı bağlamını kullanan, günlük kota korumalı Gemini YKS Koçu
+- Yeniden kimlik doğrulamalı, alt koleksiyonları da temizleyen hesap silme
+- Kişisel veri eklemeyen release Crashlytics hata raporlama
 - Açık/koyu tema ve mobil navigasyon
 - Sayfa geçişleri, kart basma, sayaç, grafik ve ilerleme animasyonları
 - Firestore profil/tercih, görev, deneme, odak ve sohbet kalıcılığı
@@ -42,17 +45,36 @@ users/{uid}/focusSessions/{sessionId}
 users/{uid}/coachMessages/{messageId}
 users/{uid}/devices/{installationId}
 users/{uid}/usage/{yyyy-MM-dd}
+users/{uid}/notificationDeliveries/{deliveryId}
 ```
 
-Koç istekleri Android Play Integrity App Check ve Firebase Auth korumalı
-`askCoach` callable fonksiyonundan geçer. Node.js 22 fonksiyonu Vertex AI
+Koç ve hesap silme istekleri Firebase Auth, App Check enforcement ve tek
+kullanımlık App Check tokenı korumalı callable fonksiyonlardan geçer. Android
+Play Integrity/debug sağlayıcısı, web ise yalnız Firebase Hosting alanlarına
+izin veren reCAPTCHA Enterprise sağlayıcısı kullanır. Node.js 22 fonksiyonu Vertex AI
 üzerindeki `gemini-3.5-flash` modelini çağırır; profil, bugünkü görevler, son
 denemeler ve son 14 günlük odak kayıtları sunucuda okunur. İstemci mesaj veya
 kota belgesi yazamaz. Kullanıcı başına günlük sınır 20 mesajdır.
 
+Firestore delete protection açıktır; kapalı beta süresince PITR kapalıdır.
+Android ve web API anahtarları sırasıyla paket/SHA ve Hosting alanlarıyla
+kısıtlanmıştır. Crashlytics yalnız release modunda çalışır; uygulama özel hata
+mesajı, e-posta, UID, token veya sohbet metni eklemez.
+
 Debug cihazda ilk çalıştırmada logcat'e yazılan App Check debug tokenı Firebase
 Console > App Check > Android > Debug tokenlarını yönet bölümüne bir kez
 eklenmelidir. Release derlemesi otomatik olarak Play Integrity kullanır.
+
+## Release imzalama
+
+Release yapılandırması debug anahtarı kullanmaz. Repo dışında oluşturulan upload
+keystore için `android/key.properties.example` dosyasını
+`android/key.properties` olarak kopyalayıp gerçek değerleri girin. Bu dosya ve
+keystore `.gitignore` kapsamındadır. Release görevi, dosya yoksa güvenli biçimde
+durur.
+
+Gizlilik politikası ve Play Data Safety formu için gerçek veri akışı envanteri
+[`docs/PRIVACY_DATA_INVENTORY.md`](docs/PRIVACY_DATA_INVENTORY.md) içindedir.
 
 ## Çalıştırma
 

@@ -4,14 +4,17 @@ import {
   HarmCategory,
 } from "@google/genai";
 import {initializeApp} from "firebase-admin/app";
+import {getAuth} from "firebase-admin/auth";
 import {
   FieldValue,
   QueryDocumentSnapshot,
   Timestamp,
   getFirestore,
 } from "firebase-admin/firestore";
+import {getMessaging} from "firebase-admin/messaging";
 import {logger} from "firebase-functions";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
+import {onSchedule} from "firebase-functions/v2/scheduler";
 
 import {
   boundedText,
@@ -21,6 +24,12 @@ import {
   safeTimeZone,
   verifiedProvider,
 } from "./coach_helpers.js";
+import {hasRecentAuthentication} from "./account_helpers.js";
+import {
+  isMotivationWindow,
+  isPermanentMessagingError,
+  motivationCopy,
+} from "./notification_helpers.js";
 
 initializeApp();
 const db = getFirestore();
@@ -44,6 +53,9 @@ Sen Zihin Rehberi uygulamasındaki Türkçe YKS çalışma koçusun.
 - Kullanıcının istediği şeyi doğrudan yanıtla; gereksiz kişisel veri isteme.
 `.trim();
 
+const runtimeServiceAccount =
+  "yks-coach-functions@yks-coach-d8b65.iam.gserviceaccount.com";
+
 const callableOptions = {
   region: "europe-west1" as const,
   timeoutSeconds: 60,
@@ -52,7 +64,7 @@ const callableOptions = {
   concurrency: 20,
   enforceAppCheck: true,
   consumeAppCheckToken: true,
-  serviceAccount: "yks-coach-functions@yks-coach-d8b65.iam.gserviceaccount.com",
+  serviceAccount: runtimeServiceAccount,
   cors: true,
 };
 
@@ -200,6 +212,228 @@ export const clearCoachHistory = onCall(callableOptions, async (request) => {
   }
   return {cleared: true};
 });
+
+export const deleteAccount = onCall(
+  {...callableOptions, timeoutSeconds: 300, maxInstances: 3},
+  async (request) => {
+    const auth = request.auth;
+    if (auth === undefined) {
+      throw new HttpsError("unauthenticated", "Giriş yapmalısın.");
+    }
+    if (!verifiedProvider(auth.token as Record<string, unknown>)) {
+      throw new HttpsError(
+        "permission-denied",
+        "Doğrulanmış e-posta veya Google hesabı gerekli.",
+      );
+    }
+    if (!hasRecentAuthentication(auth.token as Record<string, unknown>)) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Hesabı silmeden önce yeniden giriş yapmalısın.",
+        {reason: "recent-login-required"},
+      );
+    }
+
+    try {
+      await db.recursiveDelete(db.collection("users").doc(auth.uid));
+      await getAuth().deleteUser(auth.uid);
+      return {deleted: true};
+    } catch (error) {
+      logger.error("Account deletion failed", {
+        errorType: error instanceof Error ? error.name : "unknown",
+      });
+      throw new HttpsError(
+        "internal",
+        "Hesap silme işlemi tamamlanamadı. Tekrar dene.",
+      );
+    }
+  },
+);
+
+export const sendScheduledMotivations = onSchedule(
+  {
+    schedule: "5,20,35,50 * * * *",
+    timeZone: "UTC",
+    region: "europe-west1",
+    timeoutSeconds: 180,
+    memory: "256MiB",
+    maxInstances: 1,
+    retryCount: 2,
+    minBackoffSeconds: 60,
+    serviceAccount: runtimeServiceAccount,
+  },
+  async (event) => {
+    const scheduled = new Date(event.scheduleTime);
+    const now = Number.isNaN(scheduled.getTime()) ? new Date() : scheduled;
+    let lastDocument: QueryDocumentSnapshot | undefined;
+    const totals = {
+      scanned: 0,
+      reserved: 0,
+      sent: 0,
+      invalidTokens: 0,
+      failed: 0,
+    };
+
+    while (true) {
+      let query = db
+        .collectionGroup("devices")
+        .where("motivationReminder", "==", true)
+        .orderBy("__name__")
+        .limit(500);
+      if (lastDocument !== undefined) query = query.startAfter(lastDocument);
+      const snapshot = await query.get();
+      totals.scanned += snapshot.size;
+
+      const candidates = snapshot.docs.flatMap((device) => {
+        const data = device.data();
+        const path = device.ref.path.split("/");
+        const token = data.fcmToken;
+        const timeZone = safeTimeZone(data.timeZone);
+        if (
+          path.length !== 4 ||
+          path[0] !== "users" ||
+          path[2] !== "devices" ||
+          typeof token !== "string" ||
+          token.length < 20 ||
+          token.length > 4096 ||
+          !isMotivationWindow(now, timeZone)
+        ) {
+          return [];
+        }
+        return [
+          {
+            deviceRef: device.ref,
+            userId: path[1]!,
+            installationId: path[3]!,
+            token,
+            dayKey: dateKey(now, timeZone),
+          },
+        ];
+      });
+
+      const reserved = (
+        await Promise.all(
+          candidates.map((candidate) => reserveMotivation(candidate, now)),
+        )
+      ).filter((value) => value !== null);
+      totals.reserved += reserved.length;
+
+      const byDay = new Map<string, ReservedMotivation[]>();
+      for (const delivery of reserved) {
+        const existing = byDay.get(delivery.dayKey) ?? [];
+        existing.push(delivery);
+        byDay.set(delivery.dayKey, existing);
+      }
+      for (const [dayKey, deliveries] of byDay) {
+        const copy = motivationCopy(dayKey);
+        const response = await getMessaging().sendEachForMulticast({
+          tokens: deliveries.map((delivery) => delivery.token),
+          notification: copy,
+          data: {target: "focus", kind: "daily_motivation"},
+          android: {
+            priority: "normal",
+            ttl: 6 * 60 * 60 * 1000,
+            notification: {
+              channelId: "coach_updates_v1",
+              icon: "ic_launcher",
+            },
+          },
+        });
+        const batch = db.batch();
+        response.responses.forEach((result, index) => {
+          const delivery = deliveries[index]!;
+          if (result.success) {
+            totals.sent++;
+            batch.set(
+              delivery.deliveryRef,
+              {
+                status: "sent",
+                sentAt: FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp(),
+                leaseUntil: FieldValue.delete(),
+              },
+              {merge: true},
+            );
+            return;
+          }
+          totals.failed++;
+          const code = result.error?.code;
+          if (isPermanentMessagingError(code)) {
+            totals.invalidTokens++;
+            batch.delete(delivery.deviceRef);
+            batch.set(
+              delivery.deliveryRef,
+              {
+                status: "invalid-token",
+                updatedAt: FieldValue.serverTimestamp(),
+                leaseUntil: FieldValue.delete(),
+              },
+              {merge: true},
+            );
+          } else {
+            // Let the next scheduler attempt retry transient delivery errors.
+            batch.delete(delivery.deliveryRef);
+          }
+        });
+        await batch.commit();
+      }
+
+      if (snapshot.size < 500) break;
+      lastDocument = snapshot.docs.at(-1);
+    }
+
+    logger.info("Scheduled motivation run completed", totals);
+  },
+);
+
+type MotivationCandidate = {
+  deviceRef: FirebaseFirestore.DocumentReference;
+  userId: string;
+  installationId: string;
+  token: string;
+  dayKey: string;
+};
+
+type ReservedMotivation = MotivationCandidate & {
+  deliveryRef: FirebaseFirestore.DocumentReference;
+};
+
+async function reserveMotivation(
+  candidate: MotivationCandidate,
+  now: Date,
+): Promise<ReservedMotivation | null> {
+  const deliveryRef = db
+    .collection("users")
+    .doc(candidate.userId)
+    .collection("notificationDeliveries")
+    .doc(`motivation_${candidate.dayKey}_${candidate.installationId}`);
+  const reserved = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(deliveryRef);
+    const data = snapshot.data();
+    if (data?.status === "sent" || data?.status === "invalid-token") {
+      return false;
+    }
+    const leaseUntil = data?.leaseUntil;
+    if (leaseUntil instanceof Timestamp && leaseUntil.toMillis() > now.getTime()) {
+      return false;
+    }
+    transaction.set(
+      deliveryRef,
+      {
+        kind: "daily_motivation",
+        status: "pending",
+        localDate: candidate.dayKey,
+        installationId: candidate.installationId,
+        leaseUntil: Timestamp.fromMillis(now.getTime() + 10 * 60 * 1000),
+        updatedAt: FieldValue.serverTimestamp(),
+        ...(snapshot.exists ? {} : {createdAt: FieldValue.serverTimestamp()}),
+      },
+      {merge: true},
+    );
+    return true;
+  });
+  return reserved ? {...candidate, deliveryRef} : null;
+}
 
 async function reserveQuota(
   userRef: FirebaseFirestore.DocumentReference,

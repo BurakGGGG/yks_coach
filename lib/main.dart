@@ -9,8 +9,10 @@ import 'package:flutter/material.dart';
 import 'app.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
+import 'services/account_service.dart';
 import 'services/notification_service.dart';
 import 'services/coach_service.dart';
+import 'services/crash_reporting_service.dart';
 import 'state/auth_session.dart';
 
 Future<void> main() async {
@@ -26,8 +28,15 @@ Future<void> main() async {
     runApp(_FirebaseBootstrapFailure(message: error.toString()));
     return;
   }
+  await configureCrashReporting();
   final notifications = AndroidNotificationService();
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+  if (kIsWeb) {
+    await FirebaseAppCheck.instance.activate(
+      providerWeb: ReCaptchaEnterpriseProvider(
+        '6Lc1Cj4tAAAAAK4Nx5dpE_rHQeRWaoypdxvowsTv',
+      ),
+    );
+  } else if (defaultTargetPlatform == TargetPlatform.android) {
     await FirebaseAppCheck.instance.activate(
       providerAndroid: kDebugMode
           ? const AndroidDebugProvider()
@@ -43,6 +52,7 @@ Future<void> main() async {
     initialScreen: screen,
     notificationGateway: notifications,
     coachGateway: FirebaseCoachGateway(),
+    accountGateway: FirebaseAccountGateway(),
   );
   runApp(YksCoachRoot(session: session));
   unawaited(session.initialize());

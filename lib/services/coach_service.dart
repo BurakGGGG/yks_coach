@@ -38,7 +38,10 @@ class FirebaseCoachGateway implements CoachGateway {
   }) async {
     final callable = _functions.httpsCallable(
       'askCoach',
-      options: HttpsCallableOptions(timeout: const Duration(seconds: 70)),
+      options: HttpsCallableOptions(
+        timeout: const Duration(seconds: 70),
+        limitedUseAppCheckToken: true,
+      ),
     );
     final response = await callable.call<Map<String, dynamic>>({
       'message': message,
@@ -63,6 +66,11 @@ class FirebaseCoachGateway implements CoachGateway {
 
   @override
   Future<void> clearHistory() async {
-    await _functions.httpsCallable('clearCoachHistory').call<void>();
+    await _functions
+        .httpsCallable(
+          'clearCoachHistory',
+          options: HttpsCallableOptions(limitedUseAppCheckToken: true),
+        )
+        .call<void>();
   }
 }

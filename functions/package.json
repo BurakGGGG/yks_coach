@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
-    "test": "npm run build && node --test lib/coach_helpers.test.js"
+    "test": "npm run build && node --test lib/*.test.js"
   },
   "dependencies": {
     "@google/genai": "2.10.0",

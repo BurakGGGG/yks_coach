@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/app_controller.dart';
+import '../state/auth_session.dart';
 import '../widgets/common.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -34,9 +35,108 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _initialized = true;
   }
 
+  Future<void> _confirmAccountDeletion(AuthSession auth) async {
+    var confirmation = '';
+    var password = '';
+    final requiresPassword = auth.deletionRequiresPassword;
+    final approved = await showDialog<String?>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setLocalState) {
+          final canDelete =
+              confirmation.trim().toUpperCase() == 'SİL' &&
+              (!requiresPassword || password.isNotEmpty);
+          return AlertDialog(
+            icon: Icon(
+              Icons.warning_amber_rounded,
+              color: Theme.of(context).colorScheme.error,
+              size: 36,
+            ),
+            title: const Text('Hesabı ve tüm verileri sil'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Profilin, görevlerin, denemelerin, odak kayıtların, '
+                    'sohbetlerin ve cihaz bildirim tokenların kalıcı olarak '
+                    'silinecek. Bu işlem geri alınamaz.',
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Onaylamak için SİL yaz',
+                      prefixIcon: Icon(Icons.delete_forever_outlined),
+                    ),
+                    textCapitalization: TextCapitalization.characters,
+                    onChanged: (value) =>
+                        setLocalState(() => confirmation = value),
+                  ),
+                  if (requiresPassword) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      obscureText: true,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      decoration: const InputDecoration(
+                        labelText: 'Mevcut şifren',
+                        prefixIcon: Icon(Icons.lock_outline),
+                      ),
+                      onChanged: (value) =>
+                          setLocalState(() => password = value),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Devam ettiğinde Google hesabınla yeniden doğrulama '
+                      'istenir.',
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Vazgeç'),
+              ),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
+                ),
+                onPressed: canDelete
+                    ? () => Navigator.pop(dialogContext, password)
+                    : null,
+                icon: const Icon(Icons.delete_forever),
+                label: const Text('Kalıcı olarak sil'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (approved == null || !mounted) return;
+    final deleted = await auth.deleteAccount(
+      password: requiresPassword ? approved : null,
+    );
+    if (!mounted) return;
+    if (deleted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } else {
+      AppSnack.show(
+        context,
+        auth.errorMessage ?? 'Hesap ve veriler silinemedi. Tekrar dene.',
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileController = AppScope.of(context).profile;
+    final auth = AuthScope.maybeOf(context);
     final profile = profileController.profile;
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
@@ -204,6 +304,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: const Icon(Icons.check),
                   label: const Text('Değişiklikleri kaydet'),
                 ),
+                if (auth != null) ...[
+                  const SizedBox(height: 24),
+                  SurfaceCard(
+                    border: true,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hesap ve veriler',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge?.copyWith(color: scheme.error),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Hesabını ve bu hesaba bağlı bütün çalışma '
+                          'verilerini kalıcı olarak silebilirsin.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: scheme.error,
+                            side: BorderSide(color: scheme.error),
+                            minimumSize: const Size(double.infinity, 48),
+                          ),
+                          onPressed: auth.busy
+                              ? null
+                              : () => _confirmAccountDeletion(auth),
+                          icon: auth.busy
+                              ? const SizedBox.square(
+                                  dimension: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.delete_forever_outlined),
+                          label: Text(
+                            auth.busy ? 'İşlem sürüyor…' : 'Hesabımı sil',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

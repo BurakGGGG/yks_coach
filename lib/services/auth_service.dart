@@ -19,6 +19,7 @@ abstract interface class AuthGateway {
   Future<void> sendPasswordReset(String email);
   Future<void> resendVerificationEmail();
   Future<User?> reloadUser({bool refreshToken = false});
+  Future<void> reauthenticateForDeletion({String? password});
   Future<void> signOut();
 }
 
@@ -135,6 +136,47 @@ class AuthService implements AuthGateway {
     await _auth.currentUser?.reload();
     if (refreshToken) await _auth.currentUser?.getIdToken(true);
     return _auth.currentUser;
+  }
+
+  @override
+  Future<void> reauthenticateForDeletion({String? password}) async {
+    final user = _auth.currentUser;
+    if (user == null || user.isAnonymous) {
+      throw FirebaseAuthException(code: 'user-not-found');
+    }
+    final providers = user.providerData.map((data) => data.providerId).toSet();
+    if (providers.contains(GoogleAuthProvider.PROVIDER_ID)) {
+      if (kIsWeb) {
+        final provider = GoogleAuthProvider()
+          ..setCustomParameters({'prompt': 'select_account'});
+        await user.reauthenticateWithPopup(provider);
+      } else {
+        if (!_googleInitialized) {
+          await GoogleSignIn.instance.initialize();
+          _googleInitialized = true;
+        }
+        final googleUser = await GoogleSignIn.instance.authenticate();
+        final idToken = googleUser.authentication.idToken;
+        if (idToken == null) {
+          throw StateError('Google kimlik belirteci alınamadı.');
+        }
+        await user.reauthenticateWithCredential(
+          GoogleAuthProvider.credential(idToken: idToken),
+        );
+      }
+    } else if (providers.contains(EmailAuthProvider.PROVIDER_ID)) {
+      final value = password ?? '';
+      final email = user.email;
+      if (email == null || value.isEmpty) {
+        throw FirebaseAuthException(code: 'wrong-password');
+      }
+      await user.reauthenticateWithCredential(
+        EmailAuthProvider.credential(email: email, password: value),
+      );
+    } else {
+      throw FirebaseAuthException(code: 'operation-not-allowed');
+    }
+    await user.getIdToken(true);
   }
 
   @override

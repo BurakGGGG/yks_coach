@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../data/firestore_store.dart';
 import '../services/auth_service.dart';
+import '../services/account_service.dart';
 import '../services/notification_service.dart';
 import '../services/coach_service.dart';
 import 'app_controller.dart';
@@ -18,6 +20,7 @@ class AuthSession extends ChangeNotifier {
     this.initialScreen,
     this.notificationGateway,
     this.coachGateway,
+    this.accountGateway,
   });
 
   final AuthGateway auth;
@@ -26,6 +29,7 @@ class AuthSession extends ChangeNotifier {
   final String? initialScreen;
   final NotificationGateway? notificationGateway;
   final CoachGateway? coachGateway;
+  final AccountGateway? accountGateway;
 
   AuthStage stage = AuthStage.loading;
   AppController? app;
@@ -96,6 +100,35 @@ class AuthSession extends ChangeNotifier {
     await auth.ensureAnonymousUser();
     await _routeCurrentUser();
   });
+
+  bool get deletionRequiresPassword {
+    final providers = user?.providerData
+        .map((provider) => provider.providerId)
+        .toSet();
+    if (providers == null ||
+        providers.contains(GoogleAuthProvider.PROVIDER_ID)) {
+      return false;
+    }
+    return providers.contains(EmailAuthProvider.PROVIDER_ID);
+  }
+
+  Future<bool> deleteAccount({String? password}) async {
+    var deleted = false;
+    await _run(() async {
+      final gateway = accountGateway;
+      if (gateway == null) throw StateError('Hesap servisi hazır değil.');
+      await auth.reauthenticateForDeletion(password: password);
+      await app?.deactivateNotifications();
+      await gateway.deleteAccount();
+      app?.dispose();
+      app = null;
+      await auth.signOut();
+      await auth.ensureAnonymousUser();
+      await _routeCurrentUser();
+      deleted = true;
+    });
+    return deleted;
+  }
 
   Future<void> retry() async {
     stage = AuthStage.loading;
@@ -188,7 +221,18 @@ class AuthSession extends ChangeNotifier {
           'Bu giriş bilgisi başka bir hesaba bağlı.',
         'operation-not-allowed' =>
           'Bu giriş yöntemi Firebase projesinde etkin değil.',
+        'requires-recent-login' =>
+          'Hesabı silmeden önce kimliğini yeniden doğrulamalısın.',
         _ => 'Kimlik doğrulama işlemi tamamlanamadı.',
+      };
+    }
+    if (error is FirebaseFunctionsException) {
+      return switch (error.code) {
+        'failed-precondition' =>
+          'Güvenli doğrulama yenilenemedi. Tekrar giriş yapıp dene.',
+        'unauthenticated' ||
+        'permission-denied' => 'Hesap silme yetkisi doğrulanamadı.',
+        _ => 'Hesap ve veriler silinemedi. Tekrar dene.',
       };
     }
     return 'Beklenmeyen bir hata oluştu. Tekrar dene.';

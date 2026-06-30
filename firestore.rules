@@ -124,7 +124,8 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if owns(userId);
       allow create, update: if owns(userId) && validUser();
-      allow delete: if owns(userId);
+      // Full account deletion is recursive and is performed by deleteAccount.
+      allow delete: if false;
 
       match /tasks/{taskId} {
         allow read, delete: if owns(userId);
@@ -149,6 +150,11 @@ service cloud.firestore {
 
       match /usage/{dateId} {
         // Daily quota accounting is readable and writable only by the server.
+        allow read, write: if false;
+      }
+
+      match /notificationDeliveries/{deliveryId} {
+        // Scheduled FCM delivery leases and idempotency records are server-only.
         allow read, write: if false;
       }
 

@@ -7,6 +7,7 @@ const {
 } = require('@firebase/rules-unit-testing');
 const {
   doc,
+  deleteDoc,
   getDoc,
   serverTimestamp,
   setDoc,
@@ -138,5 +139,34 @@ describe('Firestore security rules', () => {
         updatedAt: serverTimestamp(),
       }),
     );
+  });
+
+  it('notification delivery leases are inaccessible to every client', async () => {
+    const deliveryRef = doc(
+      context().firestore(),
+      'users/alice/notificationDeliveries/motivation_2026-06-30_device',
+    );
+
+    await assertFails(getDoc(deliveryRef));
+    await assertFails(
+      setDoc(deliveryRef, {
+        kind: 'daily_motivation',
+        status: 'sent',
+        localDate: '2026-06-30',
+        installationId: '0123456789abcdef0123456789abcdef',
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it('clients cannot bypass recursive account deletion by deleting the profile', async () => {
+    const path = 'users/alice';
+    await testEnv.withSecurityRulesDisabled(async (adminContext) => {
+      await setDoc(doc(adminContext.firestore(), path), {
+        serverSeeded: true,
+      });
+    });
+
+    await assertFails(deleteDoc(doc(context().firestore(), path)));
   });
 });

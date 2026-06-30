@@ -6,6 +6,15 @@ Hedef: Android öncelikli, Play kapalı betaya hazır, gerçek kullanıcı veril
 
 Uygulama sırası: proje güvenliği → gerçek veri modeli → çekirdek özellikler → bildirimler → Gemini koç → güvenlik/izleme → kapalı beta.
 
+## Güncel Durum — 30 Haziran 2026
+
+- Aşama 0–4 tamamlandı; Functions, Rules ve indeksler canlı Firebase projesine dağıtıldı.
+- Aşama 5'te hesap silme, Crashlytics, API anahtarı kısıtları, delete protection, Android/web App Check sağlayıcıları ve callable enforcement tamamlandı.
+- Firestore App Check enforcement, yeni web istemcisi deploy edilip iki platformda metrik doğrulaması yapılana kadar gözlem modunda tutuluyor.
+- Gizlilik politikası için teknik veri envanteri hazır; yayın öncesi geliştirici/veri sorumlusu adı ve destek e-postası gerekiyor.
+- Aşama 6 başladı: uygulama kimliği sabit, sürüm `1.0.0+2` ve release debug imzasından ayrıldı. Upload keystore, Play App Signing SHA değerleri ve mağaza varlıkları kullanıcı hesabında tamamlanacak.
+- Kullanıcı onayı olmadan APK/AAB üretilmeyecek ve web uygulaması başlatılmayacak.
+
 ## Uygulama Aşamaları
 
 ### 0. Güvenli geliştirme temeli
