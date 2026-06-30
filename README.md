@@ -10,13 +10,15 @@ Stitch'teki **YKS Hazırlık Asistanı** tasarımlarından geliştirilen Flutter
 - TYT/AYT deneme analizi ve deneme ekleme
 - Düzenlenebilir öğrenci profili ve YKS hedefleri
 - Bildirim tercihleri ve saat seçimi
-- Hızlı öneriler ile çalışan yerel YKS Asistanı demosu
+- Gerçek kullanıcı bağlamını kullanan, günlük kota korumalı Gemini YKS Koçu
 - Açık/koyu tema ve mobil navigasyon
 - Sayfa geçişleri, kart basma, sayaç, grafik ve ilerleme animasyonları
-- Firebase anonim oturum, Firestore profil/tercih, görev, deneme ve sohbet kalıcılığı
+- Firestore profil/tercih, görev, deneme, odak ve sohbet kalıcılığı
 - E-posta/şifre kaydı, e-posta doğrulama, şifre sıfırlama ve Google ile giriş
 
-Uygulama `yks-coach-d8b65` Firebase projesine bağlıdır. İlk açılışta geçici anonim oturum oluşturulur ve kullanıcı giriş/kayıt ekranına yönlendirilir. Yeni e-posta veya Google hesabı bu geçici kullanıcıya bağlandığı için mevcut veriler ve UID korunur. Firestore verilerine yalnızca e-postası doğrulanmış `password` veya `google.com` sağlayıcılı kullanıcı erişebilir.
+Uygulama `yks-coach-d8b65` Firebase projesine bağlıdır. Firestore verilerine
+yalnızca e-postası doğrulanmış `password` veya `google.com` sağlayıcılı kullanıcı
+erişebilir.
 
 E-posta hesaplarında proje seviyesinde en az 10 karakter, büyük harf, küçük harf ve rakam zorunluluğu uygulanır. E-posta adresi keşfini zorlaştıran gelişmiş gizlilik ayarı ve 30 günlük anonim kullanıcı temizliği Firebase tarafında etkindir.
 
@@ -38,7 +40,19 @@ users/{uid}/tasks/{taskId}
 users/{uid}/exams/{examId}
 users/{uid}/focusSessions/{sessionId}
 users/{uid}/coachMessages/{messageId}
+users/{uid}/devices/{installationId}
+users/{uid}/usage/{yyyy-MM-dd}
 ```
+
+Koç istekleri Android Play Integrity App Check ve Firebase Auth korumalı
+`askCoach` callable fonksiyonundan geçer. Node.js 22 fonksiyonu Vertex AI
+üzerindeki `gemini-3.5-flash` modelini çağırır; profil, bugünkü görevler, son
+denemeler ve son 14 günlük odak kayıtları sunucuda okunur. İstemci mesaj veya
+kota belgesi yazamaz. Kullanıcı başına günlük sınır 20 mesajdır.
+
+Debug cihazda ilk çalıştırmada logcat'e yazılan App Check debug tokenı Firebase
+Console > App Check > Android > Debug tokenlarını yönet bölümüne bir kez
+eklenmelidir. Release derlemesi otomatik olarak Play Integrity kullanır.
 
 ## Çalıştırma
 
@@ -55,13 +69,8 @@ Tüm otomatik kontroller tek komutta toplanır:
 make verify        # veya: ./tool/verify.sh
 ```
 
-Bu komut `flutter analyze` ve `flutter test`'i; ileride `functions/` ve
-`test/firestore/` paketleri eklendiğinde de Cloud Functions lint/test'ini ve
-Firestore Rules testlerini sırayla çalıştırır. Web sürümü ayrıca alınır:
-
-```bash
-flutter build web --release
-```
+Bu komut biçim denetimi, `flutter analyze`, Flutter testleri, Cloud Functions
+TypeScript lint/testi ve Firestore Rules emulator testlerini sırayla çalıştırır.
 
 Görsel ve font varlıkları `pubspec.yaml` içindeki `assets` ve `google_fonts` yapılandırmalarıyla yönetilir.
 

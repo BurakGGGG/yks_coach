@@ -100,4 +100,43 @@ describe('Firestore security rules', () => {
 
     await assertFails(setDoc(ref, malformed));
   });
+
+  it('clients cannot forge coach messages but the verified owner can read them', async () => {
+    const path = 'users/alice/coachMessages/server-message';
+    await testEnv.withSecurityRulesDisabled(async (adminContext) => {
+      await setDoc(doc(adminContext.firestore(), path), {
+        text: 'Sunucu tarafından üretilen yanıt',
+        fromUser: false,
+        conversationId: 'main',
+        createdAt: serverTimestamp(),
+      });
+    });
+
+    const ownerRef = doc(context().firestore(), path);
+    await assertSucceeds(getDoc(ownerRef));
+    await assertFails(
+      setDoc(doc(context().firestore(), 'users/alice/coachMessages/forged'), {
+        text: 'Sahte asistan yanıtı',
+        fromUser: false,
+        conversationId: 'main',
+        createdAt: serverTimestamp(),
+      }),
+    );
+  });
+
+  it('daily coach quota is inaccessible to every client', async () => {
+    const usageRef = doc(
+      context().firestore(),
+      'users/alice/usage/2026-06-30',
+    );
+
+    await assertFails(getDoc(usageRef));
+    await assertFails(
+      setDoc(usageRef, {
+        date: '2026-06-30',
+        coachMessages: 0,
+        updatedAt: serverTimestamp(),
+      }),
+    );
+  });
 });

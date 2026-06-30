@@ -9,24 +9,28 @@ class CoachMessage {
     required this.text,
     required this.fromUser,
     required this.createdAt,
+    this.conversationId = 'main',
   });
 
   final String id;
   final String text;
   final bool fromUser;
   final DateTime createdAt;
+  final String conversationId;
 
   CoachMessage copyWith({String? id}) => CoachMessage(
     id: id ?? this.id,
     text: text,
     fromUser: fromUser,
     createdAt: createdAt,
+    conversationId: conversationId,
   );
 
   Map<String, Object?> toMap() => {
     'text': text,
     'fromUser': fromUser,
     'createdAt': createdAt.millisecondsSinceEpoch,
+    'conversationId': conversationId,
   };
 
   factory CoachMessage.fromMap(String id, Map<String, dynamic> map) =>
@@ -39,5 +43,6 @@ class CoachMessage {
               (map['time'] as num?)?.toInt() ??
               0,
         ),
+        conversationId: map['conversationId'] as String? ?? 'main',
       );
 }

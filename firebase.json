@@ -1,1 +1,41 @@
-{"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"flutter":{"platforms":{"android":{"default":{"projectId":"yks-coach-d8b65","appId":"1:200793488239:android:97df9df7e27747ac1cc69a","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"yks-coach-d8b65","configurations":{"android":"1:200793488239:android:97df9df7e27747ac1cc69a","web":"1:200793488239:web:20e22d4dc5d532c31cc69a"}}}}}}
+{
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs22",
+    "codebase": "default",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log"
+    ],
+    "predeploy": [
+      "npm --prefix \"$RESOURCE_DIR\" run lint",
+      "npm --prefix \"$RESOURCE_DIR\" test"
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "yks-coach-d8b65",
+          "appId": "1:200793488239:android:97df9df7e27747ac1cc69a",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "yks-coach-d8b65",
+          "configurations": {
+            "android": "1:200793488239:android:97df9df7e27747ac1cc69a",
+            "web": "1:200793488239:web:20e22d4dc5d532c31cc69a"
+          }
+        }
+      }
+    }
+  }
+}

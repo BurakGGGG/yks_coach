@@ -1,4 +1,13 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "coachMessages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "conversationId", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

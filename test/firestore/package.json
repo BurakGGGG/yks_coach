@@ -2,7 +2,7 @@
   "name": "yks-coach-firestore-rules-tests",
   "private": true,
   "scripts": {
-    "test": "firebase --config ../../firebase.json emulators:exec --project demo-yks-coach --only firestore \"mocha --timeout 15000 rules.test.cjs\""
+    "test": "firebase --config firebase.json emulators:exec --project demo-yks-coach --only firestore \"mocha --timeout 15000 rules.test.cjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.1",

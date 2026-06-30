@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'app.dart';
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
+import 'services/coach_service.dart';
 import 'state/auth_session.dart';
 
 Future<void> main() async {
@@ -26,6 +28,11 @@ Future<void> main() async {
   }
   final notifications = AndroidNotificationService();
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+    );
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await notifications.initialize();
   }
@@ -35,6 +42,7 @@ Future<void> main() async {
     initialDark: dark,
     initialScreen: screen,
     notificationGateway: notifications,
+    coachGateway: FirebaseCoachGateway(),
   );
   runApp(YksCoachRoot(session: session));
   unawaited(session.initialize());

@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../data/firestore_store.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../services/coach_service.dart';
 import 'app_controller.dart';
 
 enum AuthStage { loading, authentication, verification, ready, failure }
@@ -16,6 +17,7 @@ class AuthSession extends ChangeNotifier {
     required this.initialDark,
     this.initialScreen,
     this.notificationGateway,
+    this.coachGateway,
   });
 
   final AuthGateway auth;
@@ -23,6 +25,7 @@ class AuthSession extends ChangeNotifier {
   final bool initialDark;
   final String? initialScreen;
   final NotificationGateway? notificationGateway;
+  final CoachGateway? coachGateway;
 
   AuthStage stage = AuthStage.loading;
   AppController? app;
@@ -130,6 +133,7 @@ class AuthSession extends ChangeNotifier {
       initialTab: initialTab,
       suggestedName: current.displayName,
       notificationGateway: notificationGateway,
+      coachGateway: coachGateway,
     );
     await nextApp.whenReady;
     if (generation != _routeGeneration) {

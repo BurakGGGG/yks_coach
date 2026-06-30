@@ -67,7 +67,7 @@ users/{uid}/usage/{yyyy-MM-dd}
 ### 4. Sunucu tarafında Gemini YKS Koçu
 
 - TypeScript ve Node.js 22 ile Cloud Functions v2 altyapısı kur. [Desteklenen Functions runtime’ları](https://firebase.google.com/docs/functions/manage-functions)
-- Vertex AI üzerinden yapılandırılabilir model adıyla, başlangıçta `gemini-2.5-flash` kullan; API anahtarı istemciye veya repoya konmaz.
+- Vertex AI üzerinden yapılandırılabilir model adıyla `gemini-3.5-flash` kullan; API anahtarı istemciye veya repoya konmaz.
 - `askCoach` callable arayüzü:
 
 ```text

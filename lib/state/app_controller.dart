@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/repositories.dart';
 import '../models/user_profile.dart';
 import '../services/notification_service.dart';
+import '../services/coach_service.dart';
 import 'analytics.dart';
 import 'coach_controller.dart';
 import 'exam_controller.dart';
@@ -21,6 +22,7 @@ class AppController extends ChangeNotifier with WidgetsBindingObserver {
     int initialTab = 0,
     String? suggestedName,
     NotificationGateway? notificationGateway,
+    CoachGateway? coachGateway,
   }) : tabIndex = initialTab {
     profile = ProfileController(
       repositories.profile,
@@ -28,7 +30,7 @@ class AppController extends ChangeNotifier with WidgetsBindingObserver {
     );
     schedule = ScheduleController(repositories.tasks);
     exams = ExamController(repositories.exams);
-    coach = CoachController(repositories.coach);
+    coach = CoachController(repositories.coach, gateway: coachGateway);
     focus = FocusController(
       repositories.focus,
       focusMinutes: profile.profile.focusMinutes,

@@ -36,6 +36,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
     final future = coach.sendMessage(message);
     _scrollToBottom();
     await future;
+    if (mounted && coach.errorMessage != null) {
+      AppSnack.show(context, coach.errorMessage!);
+    }
     _scrollToBottom();
   }
 
@@ -74,8 +77,15 @@ class _AssistantScreenState extends State<AssistantScreen> {
       ),
     );
     if (confirmed == true) {
-      await coach.clearHistory();
-      if (context.mounted) AppSnack.show(context, 'Sohbet geçmişi temizlendi');
+      final cleared = await coach.clearHistory();
+      if (context.mounted) {
+        AppSnack.show(
+          context,
+          cleared
+              ? 'Sohbet geçmişi temizlendi'
+              : coach.errorMessage ?? 'Sohbet geçmişi temizlenemedi',
+        );
+      }
     }
   }
 
@@ -85,12 +95,14 @@ class _AssistantScreenState extends State<AssistantScreen> {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Column(
+        title: Column(
           children: [
-            Text('YKS Asistanı'),
+            const Text('YKS Asistanı'),
             Text(
-              'Yerel demo',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
+              coach.remainingDailyQuota == null
+                  ? 'Gemini destekli'
+                  : '${coach.remainingDailyQuota} günlük mesaj kaldı',
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
             ),
           ],
         ),
@@ -220,6 +232,14 @@ class _AssistantScreenState extends State<AssistantScreen> {
                           controller: _controller,
                           minLines: 1,
                           maxLines: 4,
+                          maxLength: 2000,
+                          buildCounter:
+                              (
+                                context, {
+                                required currentLength,
+                                required isFocused,
+                                required maxLength,
+                              }) => null,
                           textInputAction: TextInputAction.send,
                           onSubmitted: (_) => _send(coach),
                           decoration: const InputDecoration(
